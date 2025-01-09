@@ -119,13 +119,13 @@ function generateMatrixChart(data_chart, ctx, rgb_x, rgb_y, rgb_z) {
 // Insert data from qc_data.js
 //--------------------------------------------
 
-const sample_names = Object.keys(data.sample_succes);
+const sample_names = Object.keys(data.sample_success);
 const roundToOne = num => +(Math.round(num + "e+1") + "e-1");
 
 // Count the total number of estimated cells over samples.
 let total_estimated_cells = 0;
 for (let i = 0; i < sample_names.length; i++) {
-  total_estimated_cells += data.sample_succes[sample_names[i]].estimated_cells;
+  total_estimated_cells += data.sample_success[sample_names[i]].estimated_cells;
 }
 
 // Update numbers
@@ -200,7 +200,7 @@ var sample_n_pairs_success = [];
 for (var i = 0; i < sample_names.length; i++) {
   sample_n_pairs_success.push({
     sample_name: sample_names[i],
-    frequency: data.sample_succes[sample_names[i]].n_pairs_success,
+    frequency: data.sample_success[sample_names[i]].n_pairs_success,
   });
 }
 
@@ -627,7 +627,7 @@ function generate_starsolo_table(data) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  generate_starsolo_table(data.sample_succes);
+  generate_starsolo_table(data.sample_success);
 
   // Sort using tablesorter
   $("#sample-starsolo-table").tablesorter({

@@ -1,21 +1,54 @@
-name: ci 
+name: CI
+
 on:
   push:
-    branches:
-      - master 
-      - main
-permissions:
-  contents: write
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
-      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV 
-      - uses: actions/cache@v3
+          python-version: '3.13'
+      - run: pip install pytest
+      - name: Download test data
+        run: |
+          cd ci
+          wget https://keegan.ch/sci-rocket-test-data/test-data.tgz
+          tar -xvzf test-data.tgz
+          cd genome
+          gunzip *
+      - name: Run workflow
+        uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: 'workflow'
+          snakefile: 'workflow/Snakefile'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile ci/test_basic/config.yaml'
+          stagein: ''
+          show-disk-usage-on-error: true
+      - name: Test workflow outputs
+        run: pytest ../ci/test_basic/tests -vvv
+        working-directory: workflow
+      - if: failure()
+        run: |
+          ls workflow/*/*/*
+          tail -n 10000 logs/*/*
+
+
+  docs:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache

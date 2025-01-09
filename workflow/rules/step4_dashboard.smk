@@ -3,22 +3,6 @@
 #   1. sci-dash:                Generates the QC-dashboard for a given sequencing run.
 #############
 
-# Get the samples for a given sequencing run (and sci-dash).
-def getsamples_sequencing(wildcards):
-    x = samples_unique[samples_unique["experiment_name"] == wildcards.experiment_name]
-    
-    files = ["{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam.bai".format(
-        experiment_name=experiment_name,
-        sample_name=sample_name,
-        species=species,
-    )
-    for experiment_name, sample_name, species in zip(
-        x["experiment_name"],
-        x["sample_name"],
-        x["species"],
-    )]
-
-    return files
 
 rule sci_dash:
     input:

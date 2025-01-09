@@ -33,12 +33,6 @@ rule trim_fastp:
         "fastp {params.extra} --html {output.html} --json {output.json} --thread {threads} --in1 {input.R1} --in2 {input.R2} --out1 {output.R1} --out2 {output.R2} >& {log}"
 
 
-# Retrieve the expected no. of cells for a given (demultiplexed) sample.
-def get_expected_cells(wildcards):
-    x = samples_unique[samples_unique["sample_name"] == wildcards.sample_name]
-    return x["n_expected_cells"].values[0]
-
-
 rule generate_index_STAR:
     output:
         temp(directory("resources/index_star/{species}/")),

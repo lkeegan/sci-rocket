@@ -4,26 +4,6 @@
 #   2. bcl2fastq:                   Convert bcl to fastq with p5 and p7 indexes within the read name.
 #############
 
-def get_bcl2fastq_input(sequencing_name, experiment_name):
-    """
-    Return the path to the bcl file for a given sequencing run.
-    """
-    return samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_bcl.values[0]
-
-
-def get_folder_undetermined(sequencing_name, experiment_name):
-    """
-    Return the path to the folder containing the Undetermined fastq files (R1 and R2) for a given sequencing run from the samplesheet (path_fastq)
-    """
-    if "path_fastq" not in samples_unique.columns:
-        return ""
-    else:
-        if samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0] == "None":
-            return ""
-        else:
-            # If yes, then use the path from the samplesheet.
-            return samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0]
-
 
 rule make_fake_samplesheet:
     output:
@@ -78,10 +58,6 @@ rule bcl2fastq:
             --writing-threads 2 &> {log}
         fi
         """
-
-def get_sequencing_runs(experiment_name):
-    """Return a list of sequencing runs."""
-    return samples_unique.query("experiment_name == @experiment_name").sequencing_name.unique().tolist()
 
 rule merge_sequencing_runs:
     input:

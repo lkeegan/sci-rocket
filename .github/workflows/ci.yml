@@ -20,15 +20,13 @@ jobs:
       - name: Run workflow
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: 'workflow'
+          directory: '.'
           snakefile: 'workflow/Snakefile'
           args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile ci/test_basic/config.yaml'
           stagein: ''
           show-disk-usage-on-error: true
       - name: Test workflow outputs
-        run: pytest ../ci/test_basic/tests -vvv
-        working-directory: workflow
-
+        run: pytest ci/test_basic/tests -vvv
 
   docs:
     permissions:

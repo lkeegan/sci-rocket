@@ -5,36 +5,26 @@
 
 # Get the samples for a given sequencing run (and sci-dash).
 def getsamples_sequencing(wildcards):
-    x = samples_unique[samples_unique["experiment_name"] == wildcards.experiment_name]
-    
-    files = ["{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam.bai".format(
-        experiment_name=experiment_name,
-        sample_name=sample_name,
-        species=species,
-    )
-    for experiment_name, sample_name, species in zip(
-        x["experiment_name"],
-        x["sample_name"],
-        x["species"],
-    )]
+    df = samples_unique[samples_unique["experiment_name"] == wildcards.experiment_name]
+    files = [f"{dir_output}/{s.experiment_name}/alignment/{s.sample_name}_{s.species}_Aligned.sortedByCoord.out.bam.bai" for s in df.itertuples(index=False, name='Row')]
 
     return files
 
 rule sci_dash:
     input:
         lambda w: getsamples_sequencing(w),
-        qc="{experiment_name}/demux_reads/{experiment_name}_qc.pickle"
+        qc="{dir_output}/{experiment_name}/demux_reads/{experiment_name}_qc.pickle"
     output:
-        dash_folder=directory("{experiment_name}/sci-dash/"),
-        dash_json="{experiment_name}/sci-dash/js/qc_data.js",
+        dash_folder=directory("{dir_output}/{experiment_name}/sci-dash/"),
+        dash_json="{dir_output}/{experiment_name}/sci-dash/js/qc_data.js",
     threads: 1
     resources:
         mem_mb=1024 * 10,
     benchmark:
-        "benchmarks/sci_dash_{experiment_name}.txt"
+        "{dir_output}/benchmarks/sci_dash_{experiment_name}.txt"
     params:
         # Optional hashing output. 
-        metrics_hashing="{experiment_name}/hashing/{experiment_name}_hashing_metrics.tsv"
+        metrics_hashing="{dir_output}/{experiment_name}/hashing/{experiment_name}_hashing_metrics.tsv"
     conda:
         "envs/sci-rocket.yaml",
     message:
@@ -48,9 +38,9 @@ rule sci_dash:
         python3 {workflow.basedir}/rules/scripts/demultiplexing/demux_dash.py \
         --path_out {output.dash_json} \
         --path_pickle {input.qc} \
-        --path_star {wildcards.experiment_name}/alignment/ \
+        --path_star {dir_output}/{wildcards.experiment_name}/alignment/ \
         --path_hashing {params.metrics_hashing}
 
         # Remove all empty (leftover) folders.
-        find ./{wildcards.experiment_name}/ -empty -type d -delete
+        find {dir_output}/{wildcards.experiment_name}/ -empty -type d -delete
         """

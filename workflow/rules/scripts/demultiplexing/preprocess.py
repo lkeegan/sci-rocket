@@ -1,3 +1,4 @@
+import re
 import logging
 import pandas as pd
 import numpy as np
@@ -264,3 +265,73 @@ def check_sanity(samples, barcodes, config):
 
     # Close Logger.
     logging.shutdown()
+
+
+def get_wildcard_constraints(samples: pd.DataFrame, cols: list[str]) -> dict[str,str]:
+    """
+    Generate wildcard constraints based on the values in each specified column of the samples DataFrame.
+
+    Parameters:
+        samples (pd.DataFrame): DataFrame of samples.
+        cols (list[str]): List of columns to generate wildcard constraints for.
+
+    Returns:
+        dict: Dictionary of wildcard constraints.
+    """
+
+    return {col: "|".join([re.escape(str(x)) for x in samples[col]]) for col in cols}
+
+
+def get_samples(config: dict) -> pd.DataFrame:
+    """
+    Load the sample sheet and barcodes file, perform sanity checks, return unique samples.
+
+    Parameters:
+        config (dict): Imported config.
+    Returns:
+        pd.DataFrame: DataFrame of unique samples.
+    """
+
+    # Load sample sheet.
+    samples = pd.read_csv(config["path_samples"], sep="\t", dtype=str)
+
+    # Load barcodes file.
+    barcodes = pd.read_csv(config["path_barcodes"], sep="\t", dtype=str)
+
+    # Perform sanity checks.
+    check_sanity(samples, barcodes, config)
+
+    ## Generate the sequencing_name based on the last folder name of the path_bcl or path_fastq.
+    if "path_fastq" in samples.columns and "path_bcl" in samples.columns:
+        print("Both BCL and FASTQ paths are specified in the samples file. Will start from FASTQ.")
+
+    if "path_fastq" in samples.columns:
+        samples["path_fastq"] = samples["path_fastq"].str.rstrip("/")
+        samples["path_bcl"] = samples["path_fastq"]
+        samples["sequencing_name"] = samples["path_fastq"].str.split("/").str[-1]
+    elif "path_bcl" in samples.columns:
+        samples["path_bcl"] = samples["path_bcl"].str.rstrip("/")
+        samples["sequencing_name"] = samples["path_bcl"].str.split("/").str[-1]
+    else:
+        raise ValueError("Either path_bcl or path_fastq must be specified in the samples file.")
+
+    # Select unique samples for which to generate sample-specific files.
+    return samples.drop_duplicates(subset=["path_bcl", "sequencing_name", "experiment_name", "sample_name", "species"])
+
+
+def get_haplotyping_samples(samples_unique: pd.DataFrame) -> pd.DataFrame:
+    """
+    Returns haplotyping samples from provided unique samples DataFrame.
+
+    Parameters:
+        pd.DataFrame: DataFrame of unique samples.
+    Returns:
+        pd.DataFrame: DataFrame of haplotyping samples.
+    """
+    if "strain1" in samples_unique.columns and "strain2" in samples_unique.columns:
+        return samples_unique[
+            samples_unique[["strain1", "strain2"]].notna().all(axis=1) &
+            (samples_unique["species"] == "mouse")
+            ]
+    else:
+        return pd.DataFrame(columns=["experiment_name", "sample_name", "strain1", "strain2"])

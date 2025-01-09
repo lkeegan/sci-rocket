@@ -1032,7 +1032,7 @@ var data = {
             "value": 365293
         }
     ],
-    "sample_succes": {
+    "sample_success": {
         "zfish_hash": {
             "n_pairs_success": 291456952,
             "total_reads": 132474414,

@@ -162,7 +162,7 @@ def init_qc(experiment_name: str, dict_barcodes: dict, samples: pd.DataFrame, di
     qc["uncorrectable_rt"] = defaultdict(int)
 
     # Keep track of the number of succesfull read-pairs per sample.
-    qc["sample_succes"] = {k: {"n_pairs_success": 0} for k in samples["sample_name"].unique()}
+    qc["sample_success"] = {k: {"n_pairs_success": 0} for k in samples["sample_name"].unique()}
 
     # Hash-specific qc metrics and regex (per sample).
     if dict_hashing:
@@ -201,7 +201,7 @@ def update_qc(qc:dict, x:sciRecord):
         qc["n_pairs_success"] += 1
 
         # Keep track of the number of succesfull read-pairs per sample.
-        qc["sample_succes"][x.sample_name]["n_pairs_success"] += 1
+        qc["sample_success"][x.sample_name]["n_pairs_success"] += 1
 
         # Count the number of corrected barcodes.
         qc["n_corrected_p7"] += 1 if x.p7_status == "Corrected" else 0
@@ -216,7 +216,7 @@ def update_qc(qc:dict, x:sciRecord):
         qc["ligation_barcode_counts"][x.ligation_name] += 1
 
         # Keep track of correct read-pairs per sample.
-        qc["sample_succes"][x.sample_name]["n_pairs_success"] += 1
+        qc["sample_success"][x.sample_name]["n_pairs_success"] += 1
 
         # Count the occurence of the barcodes.
         qc["p5_index_counts"][x.p5_name] += 1

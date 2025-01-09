@@ -11,7 +11,7 @@ dependencies:
   - bioconda::umi_tools>=1.1.4
 
   # Python and required modules.
-  - conda-forge::python>=3.10
+  - conda-forge::python==3.13
   - conda-forge::pip
   - pip:
       - pysam>=0.22.0

@@ -24,8 +24,8 @@ dir_output: "examples/output/"
 # star_index (path) is optional and can be set to "" if no STAR index is already available (this will be generated as part of the workflow).
 species:
   mouse:
-    genome: "xxx.fa"
-    genome_gtf: "xxx.gtf"
+    genome: "Danio_rerio.GRCz11.dna.chromosome.1.fa"
+    genome_gtf: "Danio_rerio.GRCz11.113.chr.gtf"
     star_index: ""
   zebrafish:
     genome: ""

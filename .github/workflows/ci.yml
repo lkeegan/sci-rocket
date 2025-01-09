@@ -1,21 +1,48 @@
-name: ci 
+name: CI
+
 on:
   push:
-    branches:
-      - master 
-      - main
-permissions:
-  contents: write
+    branches: [ main, add_ci ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - run: |
+          cd workflow
+          wget https://ftp.ensembl.org/pub/release-113/gtf/danio_rerio/Danio_rerio.GRCz11.113.chr.gtf.gz
+          gunzip Danio_rerio.GRCz11.113.chr.gtf.gz
+          wget https://ftp.ensembl.org/pub/release-113/fasta/danio_rerio/dna/Danio_rerio.GRCz11.dna.chromosome.1.fa.gz
+          gunzip Danio_rerio.GRCz11.dna.chromosome.1.fa.gz
+      - uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: 'workflow'
+          snakefile: 'workflow/Snakefile'
+          args: '--cores 1 --use-conda --conda-cleanup-pkgs cache -p --verbose'
+          snakemake-version: '7.32.4'
+          stagein: ''
+          show-disk-usage-on-error: true
+      - if: failure()
+        run: |
+          ls workflow/*/*/*
+          tail -n 10000 logs/*/*
+
+
+  docs:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.x
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: mkdocs-material-${{ env.cache_id }}
           path: .cache

@@ -66,6 +66,7 @@ rule bcl2fastq:
             # If the path_fastq is defined in the samplesheet, then just symlink the files.
             ln -s {params.path_fastq}/Undetermined_S0_R1_001.fastq.gz {output.R1}
             ln -s {params.path_fastq}/Undetermined_S0_R2_001.fastq.gz {output.R2}
+            pwd
         else
             # If the path_fastq is not defined in the samplesheet, then run bcl2fastq.
             bcl2fastq \

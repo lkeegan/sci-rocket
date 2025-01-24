@@ -54,6 +54,7 @@ rule generate_index_STAR:
         gtf=lambda w: config["species"][w.species]["genome_gtf"],
         star_index=lambda w: config["species"][w.species]["star_index"],
         extra=config["settings"]["star_index"],
+        tmp_dir="resources/index_star/{species}__STARtmp/"
     conda:
         "envs/sci-rocket.yaml",
     message: "Generating (or symlinking) STAR indexes."
@@ -63,7 +64,7 @@ rule generate_index_STAR:
         if [ ! -z {params.star_index} ]; then
             ln -s {params.star_index} {output}
         else
-            STAR {params.extra} --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf} >& {log}
+            STAR {params.extra} --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf} --outTmpDir {params.tmp_dir} >& {log}
         fi
         """
 

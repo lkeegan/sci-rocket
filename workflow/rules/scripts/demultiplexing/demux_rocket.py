@@ -14,7 +14,7 @@ import pandas as pd
 import pysam
 
 from frozendict import frozendict
-from sanity_checks import retrieve_barcodes
+from preprocess import retrieve_barcodes
 from sciClasses import sciRecord
 
 

@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 def test_sci_dash_data():
-    data_path = Path("Drer.ZAe") / "sci-dash" / "js" / "qc_data.js"
+    data_path = Path(__file__).parent.parent / "output" / "Drer.ZAe" / "sci-dash" / "js" / "qc_data.js"
     assert data_path.exists()
     with open(data_path, "r") as f:
         json_data = f.read().split("var data = ")[1]

@@ -1,0 +1,14 @@
+path_samples: "ci/test_two_runs/samplesheet.tsv"
+path_barcodes: "ci/test_two_runs/barcodes.tsv"
+dir_output: "ci/test_two_runs/output"
+species: 
+  Zebrafish:
+    genome: "ci/genome/Danio_rerio.GRCz11.dna.primary_assembly.chr25.fa"
+    genome_gtf: "ci/genome/Danio_rerio.GRCz11.115.chr25.gtf"
+    star_index: ""
+settings:
+  scatter_fastq_split: 2
+  bcl2fastq: "--barcode-mismatches 1 --ignore-missing-positions --ignore-missing-controls --ignore-missing-filter --ignore-missing-bcls --no-lane-splitting --minimum-trimmed-read-length 15 --mask-short-adapter-reads 15"
+  fastp: "--detect_adapter_for_pe --qualified_quality_phred 15 --dont_eval_duplication --length_required 10"
+  star_index: "--sjdbOverhang 83 --limitGenomeGenerateRAM=4294967296 --genomeSAindexNbases 12"
+  star: "--soloMultiMappers EM --outSAMmultNmax 1 --outSAMstrandField intronMotif --outFilterScoreMinOverLread 0.33 --outFilterMatchNminOverLread 0.33 --outSAMunmapped Within --outSAMattributes NH HI AS nM NM MD jM jI MC ch XS CR UR GX GN sM  --limitBAMsortRAM 150000000000 --outBAMsortingBinsN 100"

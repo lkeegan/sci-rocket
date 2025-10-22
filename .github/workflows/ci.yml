@@ -22,16 +22,26 @@ jobs:
           tar -xvzf test-data.tgz
           cd genome
           gunzip *
-      - name: Run workflow
+      - name: Single fastq run
         uses: snakemake/snakemake-github-action@v2
         with:
           directory: .
           snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile ci/test_basic/config.yaml'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose -F --configfile ci/test_basic/config.yaml'
           stagein: ''
           show-disk-usage-on-error: true
       - name: Test workflow outputs
         run: pytest ci/test_basic/tests -vvv
+      - name: Two fastq runs
+        uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: .
+          snakefile: 'workflow/Snakefile'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose -F --configfile ci/test_two_runs/config.yaml'
+          stagein: 'cd ci/test_two_runs && bash split_runs.sh && cd -'
+          show-disk-usage-on-error: true
+      - name: Test workflow outputs
+        run: pytest ci/test_two_runs/tests -vvv
 
 
   docs:

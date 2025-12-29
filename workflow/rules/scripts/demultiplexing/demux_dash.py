@@ -133,8 +133,8 @@ def combine_logs(path_pickle, path_star, path_hashing):
     # region Import STAR statistics. -------------------------------------------------------------------------------------
 
     # Per sample, load the STAR Log.final.out and STARSolo GeneFull summaries.
-    qc_json["sample_succes"] = qc["sample_succes"]
-    for sample in qc_json["sample_succes"]:
+    qc_json["sample_success"] = qc["sample_success"]
+    for sample in qc_json["sample_success"]:
 
         # Find the STARsolo GeneFull summary that matches the sample name.
         path_solo = glob.glob(path_star + sample + "_*_Solo.out/GeneFull_Ex50pAS/Summary.csv", recursive=True)
@@ -144,25 +144,25 @@ def combine_logs(path_pickle, path_star, path_hashing):
             for line in handle:
                 line = line.split(",")
                 if line[0] == "Number of Reads":
-                    qc_json["sample_succes"][sample]["total_reads"] = int(line[1].strip())
+                    qc_json["sample_success"][sample]["total_reads"] = int(line[1].strip())
                 elif line[0] == "Sequencing Saturation":
-                    qc_json["sample_succes"][sample]["sequencing_saturation"] = float(line[1].strip())
+                    qc_json["sample_success"][sample]["sequencing_saturation"] = float(line[1].strip())
                 elif line[0] == "Reads Mapped to Genome: Unique+Multiple":
-                    qc_json["sample_succes"][sample]["perc_mapped_reads_genome"] = float(line[1].strip())
+                    qc_json["sample_success"][sample]["perc_mapped_reads_genome"] = float(line[1].strip())
                 elif line[0] == "Reads Mapped to Genome: Unique":
-                    qc_json["sample_succes"][sample]["perc_unique_reads_genome_unique"] = float(line[1].strip())
+                    qc_json["sample_success"][sample]["perc_unique_reads_genome_unique"] = float(line[1].strip())
                 elif line[0] == "Reads Mapped to GeneFull_Ex50pAS: Unique+Multiple GeneFull_Ex50pAS":
-                    qc_json["sample_succes"][sample]["perc_mapped_reads_gene"] = float(line[1].strip())
+                    qc_json["sample_success"][sample]["perc_mapped_reads_gene"] = float(line[1].strip())
                 elif line[0] == "Reads Mapped to GeneFull_Ex50pAS: Unique GeneFull_Ex50pAS":
-                    qc_json["sample_succes"][sample]["perc_unique_reads_gene_unique"] = float(line[1].strip())
+                    qc_json["sample_success"][sample]["perc_unique_reads_gene_unique"] = float(line[1].strip())
                 elif line[0] == "Estimated Number of Cells":
-                    qc_json["sample_succes"][sample]["estimated_cells"] = int(line[1].strip())
+                    qc_json["sample_success"][sample]["estimated_cells"] = int(line[1].strip())
                 elif line[0] == "Mean Reads per Cell":
-                    qc_json["sample_succes"][sample]["mean_reads_per_cell"] = int(line[1].strip())
+                    qc_json["sample_success"][sample]["mean_reads_per_cell"] = int(line[1].strip())
                 elif line[0] == "Mean UMI per Cell":
-                    qc_json["sample_succes"][sample]["mean_umi_per_cell"] = int(line[1].strip())
+                    qc_json["sample_success"][sample]["mean_umi_per_cell"] = int(line[1].strip())
                 elif line[0] == "Mean GeneFull_Ex50pAS per Cell":
-                    qc_json["sample_succes"][sample]["mean_genes_per_cell"] = int(line[1].strip())
+                    qc_json["sample_success"][sample]["mean_genes_per_cell"] = int(line[1].strip())
 
         # Load the CellReads.stats file and extract several sample-wise statistics.
         path_cellreads = glob.glob(path_star + sample + "_*_Solo.out/GeneFull_Ex50pAS/CellReads.stats", recursive=True)
@@ -176,12 +176,12 @@ def combine_logs(path_pickle, path_star, path_hashing):
         df_cellreads_summed = df_cellreads.sum(axis=0)
 
         # Add the sample-wise statistics to the dictionary.
-        qc_json["sample_succes"][sample]["total_exonic_reads"] = int(df_cellreads_summed.exonic)
-        qc_json["sample_succes"][sample]["total_intronic_reads"] = int(df_cellreads_summed.intronic)
-        qc_json["sample_succes"][sample]["total_intergenic_reads"] = int(df_cellreads_summed.genomeU + df_cellreads_summed.genomeM - df_cellreads_summed.exonic - df_cellreads_summed.intronic)
-        qc_json["sample_succes"][sample]["total_mitochondrial_reads"] = int(df_cellreads_summed.mito)
-        qc_json["sample_succes"][sample]["total_exonicAS_reads"] = int(df_cellreads_summed.exonicAS)
-        qc_json["sample_succes"][sample]["total_intronicAS_reads"] = int(df_cellreads_summed.intronicAS)
+        qc_json["sample_success"][sample]["total_exonic_reads"] = int(df_cellreads_summed.exonic)
+        qc_json["sample_success"][sample]["total_intronic_reads"] = int(df_cellreads_summed.intronic)
+        qc_json["sample_success"][sample]["total_intergenic_reads"] = int(df_cellreads_summed.genomeU + df_cellreads_summed.genomeM - df_cellreads_summed.exonic - df_cellreads_summed.intronic)
+        qc_json["sample_success"][sample]["total_mitochondrial_reads"] = int(df_cellreads_summed.mito)
+        qc_json["sample_success"][sample]["total_exonicAS_reads"] = int(df_cellreads_summed.exonicAS)
+        qc_json["sample_success"][sample]["total_intronicAS_reads"] = int(df_cellreads_summed.intronicAS)
         
     # endregion ----------------------------------------------------------------------------------------------------------
 

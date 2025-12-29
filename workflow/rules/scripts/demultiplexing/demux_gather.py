@@ -41,12 +41,12 @@ def combine_pickle(pickle_dict, combined_dict):
                             combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"].update(pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"])
                             combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"] += pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"]
                                     
-        elif key == "sample_succes":
-            for sample in pickle_dict["sample_succes"]:
-                if sample not in combined_dict["sample_succes"]:
-                    combined_dict["sample_succes"][sample] = pickle_dict["sample_succes"][sample]
+        elif key == "sample_success":
+            for sample in pickle_dict["sample_success"]:
+                if sample not in combined_dict["sample_success"]:
+                    combined_dict["sample_success"][sample] = pickle_dict["sample_success"][sample]
                 else:
-                    combined_dict["sample_succes"][sample]["n_pairs_success"] += pickle_dict["sample_succes"][sample]["n_pairs_success"]
+                    combined_dict["sample_success"][sample]["n_pairs_success"] += pickle_dict["sample_success"][sample]["n_pairs_success"]
         
         # Merge everything else.
         else:

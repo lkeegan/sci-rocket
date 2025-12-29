@@ -1,0 +1,10 @@
+path_samples: "ci/test_fastq_from_aviti_two_runs/samplesheet.tsv"
+path_barcodes: "ci/barcodes.tsv"
+dir_output: "ci/test_fastq_from_aviti_two_runs/output"
+species:
+  Zebrafish:
+    genome: "ci/genome/dna.fa"
+    genome_gtf: "ci/genome/dna.gtf"
+    star_index: ""
+settings:
+  scatter_fastq_split: 3

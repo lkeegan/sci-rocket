@@ -62,6 +62,7 @@ def write_cell_hashing_table(qc, out):
 
     return dict_hashing
 
+
 def combine_logs(path_pickle, path_star, path_hashing):
     """
     Combine the demuxxing logs with the STAR logs for the sci-dash.
@@ -93,20 +94,17 @@ def combine_logs(path_pickle, path_star, path_hashing):
                 qc_json[key] = qc[key]
 
         # Determine the top recurrent uncorrectable barcodes.
+        # Sort by descending value, and sort equal values by key to ensure the ordering is deterministic.
         qc_json["top_uncorrectables"] = {}
         top_n = 15
-        qc_json["top_uncorrectables"]["p5"] = sorted(qc["uncorrectable_p5"].items(), key=lambda x: x[1], reverse=True)[:top_n]
-        qc_json["top_uncorrectables"]["p7"] = sorted(qc["uncorrectable_p7"].items(), key=lambda x: x[1], reverse=True)[:top_n]
-        qc_json["top_uncorrectables"]["ligation"] = sorted(qc["uncorrectable_ligation"].items(), key=lambda x: x[1], reverse=True)[:top_n]
-        qc_json["top_uncorrectables"]["rt"] = sorted(qc["uncorrectable_rt"].items(), key=lambda x: x[1], reverse=True)[:top_n]
+        for key in ["p5", "p7", "ligation", "rt"]:
+            sorted_by_key = sorted(qc[f"uncorrectable_{key}"].items(), key=lambda item: (-item[1], item[0]))
+            sorted_by_key_and_value = sorted(sorted_by_key, key=lambda x: x[1], reverse=True)[:top_n]
+            qc_json["top_uncorrectables"][key] = [{"barcode": k, "frequency": v} for k, v in sorted_by_key_and_value]
 
-        # Name the key/value pairs in the top_uncorrectables dictionary.
-        for key in qc_json["top_uncorrectables"]:
-            qc_json["top_uncorrectables"][key] = [{"barcode": barcode, "frequency": frequency} for barcode, frequency in qc_json["top_uncorrectables"][key]]
-
-        # Name the key/value pairs in the plate counts. Split up the key in row and col.
-        def transform_plate_counts(dict):
-            return [{"row": key[0], "col": key[1:].lstrip("0"), "frequency": dict[key]} for key in dict]
+        # Name the key/value pairs in the plate counts. Split up the key in row and col, and sort by descending frequency.
+        def transform_plate_counts(dct):
+            return [{"row": key[0], "col": key[1:].lstrip("0"), "frequency": dct[key]} for key in sorted(dct, key=lambda k: (-dct[k], k))]
 
         qc_json["p5_index_counts"] = transform_plate_counts(qc["p5_index_counts"])
         qc_json["p7_index_counts"] = transform_plate_counts(qc["p7_index_counts"])

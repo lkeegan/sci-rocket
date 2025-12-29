@@ -17,16 +17,24 @@ jobs:
       - run: pip install pytest
       - name: Download test data
         run: wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2025.11.03/test-data.tgz | tar -xvzf - -C ci
-      - name: Run workflow
+      - name: test_fastq_from_aviti_one_run
         uses: snakemake/snakemake-github-action@v2
         with:
           directory: '.'
           snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile ci/test_basic/config.yaml'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile ci/test_fastq_from_aviti_one_run/config.yaml'
           stagein: ''
           show-disk-usage-on-error: true
-      - name: Test workflow outputs
-        run: pytest ci/test_basic/tests -vvv
+      - run: pytest ci/test_fastq_from_aviti_one_run/tests -vvv
+      - name: test_fastq_from_aviti_two_runs
+        uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: '.'
+          snakefile: 'workflow/Snakefile'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile ci/test_fastq_from_aviti_two_runs/config.yaml'
+          stagein: ''
+          show-disk-usage-on-error: true
+      - run: pytest ci/test_fastq_from_aviti_two_runs/tests -vvv
 
   docs:
     permissions:

@@ -33,13 +33,13 @@ def combine_pickle(pickle_dict, combined_dict):
                         combined_dict["hashing"][sample_name][hashing_name]["n_corrected"] += pickle_dict["hashing"][sample_name][hashing_name]["n_corrected"]
                         combined_dict["hashing"][sample_name][hashing_name]["n_correct_upstream"] += pickle_dict["hashing"][sample_name][hashing_name]["n_correct_upstream"]
 
-                    # Merge the cellular sequences per hashing sample/barcode.
-                    for cellular_sequence in pickle_dict["hashing"][sample_name][hashing_name]["counts"]:
-                        if cellular_sequence not in combined_dict["hashing"][sample_name][hashing_name]["counts"]:
-                            combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence] = pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]
-                        else:
-                            combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"].update(pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"])
-                            combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"] += pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"]
+                        # Merge the cellular sequences per hashing sample/barcode.
+                        for cellular_sequence in pickle_dict["hashing"][sample_name][hashing_name]["counts"]:
+                            if cellular_sequence not in combined_dict["hashing"][sample_name][hashing_name]["counts"]:
+                                combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence] = pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]
+                            else:
+                                combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"].update(pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"])
+                                combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"] += pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"]
                                     
         elif key == "sample_success":
             for sample in pickle_dict["sample_success"]:
@@ -47,7 +47,15 @@ def combine_pickle(pickle_dict, combined_dict):
                     combined_dict["sample_success"][sample] = pickle_dict["sample_success"][sample]
                 else:
                     combined_dict["sample_success"][sample]["n_pairs_success"] += pickle_dict["sample_success"][sample]["n_pairs_success"]
-        
+
+        elif key == "rt_barcode_counts":
+            for plate in pickle_dict["rt_barcode_counts"]:
+                if plate not in combined_dict["rt_barcode_counts"]:
+                    combined_dict["rt_barcode_counts"][plate] = pickle_dict["rt_barcode_counts"][plate]
+                else:
+                    for index, count in pickle_dict["rt_barcode_counts"][plate].items():
+                        combined_dict["rt_barcode_counts"][plate][index] = combined_dict["rt_barcode_counts"][plate].get(index, 0) + count
+
         # Merge everything else.
         else:
             if isinstance(pickle_dict[key], dict):

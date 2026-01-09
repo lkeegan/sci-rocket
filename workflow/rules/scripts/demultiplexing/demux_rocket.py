@@ -215,14 +215,6 @@ def update_qc(qc:dict, x:sciRecord):
         qc["p7_index_counts"][x.p7_name] += 1
         qc["ligation_barcode_counts"][x.ligation_name] += 1
 
-        # Keep track of correct read-pairs per sample.
-        qc["sample_success"][x.sample_name]["n_pairs_success"] += 1
-
-        # Count the occurence of the barcodes.
-        qc["p5_index_counts"][x.p5_name] += 1
-        qc["p7_index_counts"][x.p7_name] += 1
-        qc["ligation_barcode_counts"][x.ligation_name] += 1
-
         # Count the occurence of the RT barcodes (per plate).
         plate_well, plate_index = x.rt_name.split("-")
 

@@ -22,6 +22,18 @@ def test_sci_dash_data():
     assert data["n_uncorrectable_rt"] == 78664
     assert data["n_hashing"] == 370
 
+    # check self-consistency of success counts
+    sum_sample_success = sum(v["n_pairs_success"] for v in data["sample_success"].values())
+    sum_p5_success_counts = sum(d["frequency"] for d in data["p5_index_counts"])
+    sum_p7_success_counts = sum(d["frequency"] for d in data["p7_index_counts"])
+    sum_ligation_success_counts = sum(d["frequency"] for d in data["ligation_barcode_counts"])
+    sum_rt_success_counts = sum(d["frequency"] for k in data["rt_barcode_counts"].values() for d in k)
+    assert sum_sample_success == data["n_pairs_success"]
+    assert sum_p5_success_counts == data["n_pairs_success"]
+    assert sum_p7_success_counts == data["n_pairs_success"]
+    assert sum_ligation_success_counts == data["n_pairs_success"]
+    assert sum_rt_success_counts == data["n_pairs_success"]
+
     assert "ZAe-10hpf-28" in data["sample_success"]
     assert "ZAe-14hpf-28" in data["sample_success"]
 

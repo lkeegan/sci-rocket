@@ -4,6 +4,9 @@
 #   2. bcl2fastq:                   Convert bcl to fastq with p5 and p7 indexes within the read name.
 #############
 
+from pathlib import Path
+
+
 def get_bcl2fastq_input(sequencing_name, experiment_name):
     """
     Return the path to the bcl file for a given sequencing run.
@@ -21,15 +24,15 @@ def get_folder_undetermined(sequencing_name, experiment_name):
         if samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0] == "None":
             return ""
         else:
-            # If yes, then use the path from the samplesheet.
-            return samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0]
+            # If yes, then use the path from the samplesheet as an absolute path for symlinking
+            return str(Path(samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0]).resolve())
 
 
 rule make_fake_samplesheet:
     output:
-        sample_sheet=temp("{experiment_name}/raw_reads/{sequencing_name}/fake.csv"),
+        sample_sheet=temp("{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/fake.csv"),
     params:
-        path_out="{experiment_name}/raw_reads/{sequencing_name}/",
+        path_out="{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/",
     message: "Generate fake sample-sheet to allow indexes to be added to R1/R2."
     shell:
         """
@@ -42,19 +45,19 @@ rule make_fake_samplesheet:
 rule bcl2fastq:
     input:
         path_bcl=lambda w: get_bcl2fastq_input(w.sequencing_name, w.experiment_name),
-        fake_sample_sheet="{experiment_name}/raw_reads/{sequencing_name}/fake.csv",
+        fake_sample_sheet="{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/fake.csv",
     output:
-        R1=temp("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R1_001.fastq.gz"),
-        R2=temp("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R2_001.fastq.gz"),
+        R1=temp("{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R1_001.fastq.gz"),
+        R2=temp("{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R2_001.fastq.gz"),
     log:
-        "logs/step1_bcl2fastq/bcl2fastq_{experiment_name}_{sequencing_name}.log",
+        "{dir_output}/logs/step1_bcl2fastq/bcl2fastq_{experiment_name}_{sequencing_name}.log",
     threads: 40
     resources:
         mem_mb=1024 * 40,
     benchmark:
-        "benchmarks/bcl2fastq_{experiment_name}_{sequencing_name}.txt"
+        "{dir_output}/benchmarks/bcl2fastq_{experiment_name}_{sequencing_name}.txt"
     params:
-        path_out="{experiment_name}/raw_reads/{sequencing_name}/",
+        path_out="{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/",
         extra=config["settings"]["bcl2fastq"],
         path_fastq=lambda w: get_folder_undetermined(w.sequencing_name, w.experiment_name),
     conda:
@@ -85,11 +88,11 @@ def get_sequencing_runs(experiment_name):
 
 rule merge_sequencing_runs:
     input:
-        R1=lambda w: expand("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R1_001.fastq.gz", experiment_name=w.experiment_name, sequencing_name=get_sequencing_runs(w.experiment_name)),
-        R2=lambda w: expand("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R2_001.fastq.gz", experiment_name=w.experiment_name, sequencing_name=get_sequencing_runs(w.experiment_name)),
+        R1=lambda w: expand(f"{dir_output}/{{experiment_name}}/raw_reads/{{sequencing_name}}/Undetermined_S0_R1_001.fastq.gz", experiment_name=w.experiment_name, sequencing_name=get_sequencing_runs(w.experiment_name)),
+        R2=lambda w: expand(f"{dir_output}/{{experiment_name}}/raw_reads/{{sequencing_name}}/Undetermined_S0_R2_001.fastq.gz", experiment_name=w.experiment_name, sequencing_name=get_sequencing_runs(w.experiment_name)),
     output:
-        R1="{experiment_name}/raw_reads/Undetermined_S0_R1_001.fastq.gz",
-        R2="{experiment_name}/raw_reads/Undetermined_S0_R2_001.fastq.gz",
+        R1="{dir_output}/{experiment_name}/raw_reads/Undetermined_S0_R1_001.fastq.gz",
+        R2="{dir_output}/{experiment_name}/raw_reads/Undetermined_S0_R2_001.fastq.gz",
     threads: 1
     resources:
         mem_mb=1024 * 2,

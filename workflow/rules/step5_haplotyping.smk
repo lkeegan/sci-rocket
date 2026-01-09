@@ -16,13 +16,13 @@
 
 rule mgp_download:
     output:
-        mgp_snp=temp("resources/MGP/mgp_REL2021_snps.vcf.gz"),
-        mgp_snp_idx=temp("resources/MGP/mgp_REL2021_snps.vcf.gz.csi"),
-        mgp_indel=temp("resources/MGP/mgp_REL2021_indels.vcf.gz"),
-        mgp_indel_idx=temp("resources/MGP/mgp_REL2021_indels.vcf.gz.csi"),
-        mgp_combined=temp("resources/MGP/mgp_REL2021_snps_indels.vcf.gz"),
+        mgp_snp=temp("{dir_output}/resources/MGP/mgp_REL2021_snps.vcf.gz"),
+        mgp_snp_idx=temp("{dir_output}/resources/MGP/mgp_REL2021_snps.vcf.gz.csi"),
+        mgp_indel=temp("{dir_output}/resources/MGP/mgp_REL2021_indels.vcf.gz"),
+        mgp_indel_idx=temp("{dir_output}/resources/MGP/mgp_REL2021_indels.vcf.gz.csi"),
+        mgp_combined=temp("{dir_output}/resources/MGP/mgp_REL2021_snps_indels.vcf.gz"),
     log:
-        "logs/haplotyping/prepare_mgp.log",
+        "{dir_output}/logs/haplotyping/prepare_mgp.log",
     threads: 10
     params:
         path_mgp=config["path_mgp"],
@@ -54,10 +54,10 @@ rule mgp_download:
 
 rule mgp_chr_prefix:
     input:
-        "resources/MGP/mgp_REL2021_snps_indels.vcf.gz",
+        "{dir_output}/resources/MGP/mgp_REL2021_snps_indels.vcf.gz",
     output:
-        vcf="resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz",
-        tbi="resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz.tbi",
+        vcf="{dir_output}/resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz",
+        tbi="{dir_output}/resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz.tbi",
     threads: 8
     conda:
         "envs/sci-haplotyping.yaml",
@@ -79,17 +79,17 @@ rule mgp_chr_prefix:
 
 rule generate_hybrid_vcf:
     input:
-        mgp="resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz",
-        mgp_index="resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz.tbi",
+        mgp="{dir_output}/resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz",
+        mgp_index="{dir_output}/resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz.tbi",
     output:
-        vcf=temp("resources/MGP/{strain1}_{strain2}_hybrid.vcf.gz"),
+        vcf=temp("{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid.vcf.gz"),
     log:
-        "logs/haplotyping/generate_hybrid_vcf_{strain1}_{strain2}.log",
+        "{dir_output}/logs/haplotyping/generate_hybrid_vcf_{strain1}_{strain2}.log",
     threads: 2
     resources:
         mem_mb=1024 * 2,
     benchmark:
-        "benchmarks/generate_hybrid_vcf_{strain1}_{strain2}.txt"
+        "{dir_output}/benchmarks/generate_hybrid_vcf_{strain1}_{strain2}.txt"
     conda:
         "envs/sci-haplotyping.yaml",
     message:
@@ -125,15 +125,15 @@ rule generate_hybrid_vcf:
 
 rule normalize_hybrid_vcf:
     input:
-        vcf="resources/MGP/{strain1}_{strain2}_hybrid.vcf.gz",
+        vcf="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid.vcf.gz",
     output:
-        vcf=temp("resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz"),
-        idx=temp("resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz.tbi"),
+        vcf=temp("{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz"),
+        idx=temp("{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz.tbi"),
     threads: 1
     params:
         fasta=lambda w: config["species"]["mouse"]["genome"],
     benchmark:
-        "benchmarks/normalize_hybrid_vcf_{strain1}_{strain2}.txt"
+        "{dir_output}/benchmarks/normalize_hybrid_vcf_{strain1}_{strain2}.txt"
     conda:
         "envs/sci-haplotyping.yaml",
     message:
@@ -151,7 +151,7 @@ rule normalize_hybrid_vcf:
 
 rule download_repeatmasker:
     output:
-        repeatmasker=temp("resources/MGP/rmsk.bed"),
+        repeatmasker=temp("{dir_output}/resources/MGP/rmsk.bed"),
     threads: 1
     resources:
         mem_mb=1024 * 2,
@@ -174,12 +174,12 @@ rule download_repeatmasker:
 
 rule filter_repeatmasker:
     input:
-        vcf="resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz",
-        idx="resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz.tbi",
-        repeatmasker="resources/MGP/rmsk.bed",
+        vcf="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz",
+        idx="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz.tbi",
+        repeatmasker="{dir_output}/resources/MGP/rmsk.bed",
     output:
-        vcf="resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz",
-        idx="resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz.tbi",
+        vcf="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz",
+        idx="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz.tbi",
     threads: 1
     conda:
         "envs/sci-haplotyping.yaml",
@@ -191,19 +191,19 @@ rule filter_repeatmasker:
 
 rule run_haplotag:
     input:
-        bam="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.bam",
-        vcf="resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz",
-        idx="resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz.tbi",
+        bam="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.bam",
+        vcf="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz",
+        idx="{dir_output}/resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz.tbi",
     output:
-        bam="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
-        bai="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
+        bam="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
+        bai="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
     log:
-        "logs/haplotyping/haplotag_{experiment_name}_{sample_name}_{strain1}_{strain2}.log",
+        "{dir_output}/logs/haplotyping/haplotag_{experiment_name}_{sample_name}_{strain1}_{strain2}.log",
     threads: 10
     resources:
         mem_mb=1024 * 40,
     benchmark:
-        "benchmarks/run_haplotag_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
+        "{dir_output}/benchmarks/run_haplotag_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
     params:
         fasta=lambda w: config["species"]["mouse"]["genome"],
     conda:
@@ -222,16 +222,16 @@ rule run_haplotag:
 
 rule haplotype_split_h1:
     input:
-        bam="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
-        bai="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
+        bam="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
+        bai="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
     output:
-        bam=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h1.bam"),
-        bai=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h1.bam.bai"),
+        bam=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h1.bam"),
+        bai=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h1.bam.bai"),
     threads: 10
     resources:
         mem_mb=1024 * 10,
     benchmark:
-        "benchmarks/haplotype_split_h1_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
+        "{dir_output}/benchmarks/haplotype_split_h1_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
     conda:
         "envs/sci-haplotyping.yaml",
     shell:
@@ -243,16 +243,16 @@ rule haplotype_split_h1:
 
 rule haplotype_split_h2:
     input:
-        bam="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
-        bai="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
+        bam="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
+        bai="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
     output:
-        bam=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h2.bam"),
-        bai=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h2.bam.bai"),
+        bam=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h2.bam"),
+        bai=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h2.bam.bai"),
     threads: 10
     resources:
         mem_mb=1024 * 10,
     benchmark:
-        "benchmarks/haplotype_split_h2_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
+        "{dir_output}/benchmarks/haplotype_split_h2_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
     conda:
         "envs/sci-haplotyping.yaml",
     shell:
@@ -264,16 +264,16 @@ rule haplotype_split_h2:
 
 rule haplotype_split_ua:
     input:
-        bam="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
-        bai="{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
+        bam="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam",
+        bai="{dir_output}/{experiment_name}/alignment/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX.bam.bai",
     output:
-        bam=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_ua.bam"),
-        bai=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_ua.bam.bai"),
+        bam=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_ua.bam"),
+        bai=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_ua.bam.bai"),
     threads: 10
     resources:
         mem_mb=1024 * 10,
     benchmark:
-        "benchmarks/haplotype_split_ua_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
+        "{dir_output}/benchmarks/haplotype_split_ua_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
     conda:
         "envs/sci-haplotyping.yaml",
     shell:
@@ -284,11 +284,11 @@ rule haplotype_split_ua:
 
 rule filter_barcodes_reads:
     input:
-        bam="{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}.bam",
-        bai="{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}.bam.bai"
+        bam="{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}.bam",
+        bai="{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}.bam.bai"
     output:
-        bam=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam"),
-        bai=temp("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam.bai")
+        bam=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam"),
+        bai=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam.bai")
     threads: 2
     resources:
         mem_mb=1024 * 10,
@@ -302,17 +302,17 @@ rule filter_barcodes_reads:
 
 rule count_haplotagged_reads:
     input:
-        bam="{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam",
-        bai="{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam.bai"
+        bam="{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam",
+        bai="{dir_output}/{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam.bai"
     output:
-        counts=temp("{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_{type}.txt"),
+        counts=temp("{dir_output}/{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_{type}.txt"),
     log:
-        "logs/haplotyping/count_haplotagged_reads_{experiment_name}_{sample_name}_{strain1}_{strain2}_{type}.log",
+        "{dir_output}/logs/haplotyping/count_haplotagged_reads_{experiment_name}_{sample_name}_{strain1}_{strain2}_{type}.log",
     threads: 2
     resources:
         mem_mb=1024 * 10,
     benchmark:
-        "benchmarks/count_haplotagged_reads_{strain1}_{strain2}_{experiment_name}_{sample_name}_{type}.txt"
+        "{dir_output}/benchmarks/count_haplotagged_reads_{strain1}_{strain2}_{experiment_name}_{sample_name}_{type}.txt"
     conda:
         "envs/sci-haplotyping.yaml",
     message:
@@ -325,18 +325,18 @@ rule count_haplotagged_reads:
 
 rule join_counts:
     input:
-        counts_h1="{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_h1.txt",
-        counts_h2="{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_h2.txt",
-        counts_ua="{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_ua.txt",
+        counts_h1="{dir_output}/{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_h1.txt",
+        counts_h2="{dir_output}/{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_h2.txt",
+        counts_ua="{dir_output}/{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts_ua.txt",
     output:
-        counts="{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts.txt",
+        counts="{dir_output}/{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts.txt",
     log:
-        "logs/haplotyping/retrieve_counts_{experiment_name}_{sample_name}_{strain1}_{strain2}.log",
+        "{dir_output}/logs/haplotyping/retrieve_counts_{experiment_name}_{sample_name}_{strain1}_{strain2}.log",
     threads: 1
     resources:
         mem_mb=1024 * 20,
     benchmark:
-        "benchmarks/join_counts_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
+        "{dir_output}/benchmarks/join_counts_{strain1}_{strain2}_{experiment_name}_{sample_name}.txt"
     params:
         path_barcodes=config["path_barcodes"],
     conda:

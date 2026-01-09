@@ -1,10 +1,10 @@
-path_samples: "/home/runner/work/sci-rocket/sci-rocket/ci/test_basic/samplesheet.tsv"
-path_barcodes: "/home/runner/work/sci-rocket/sci-rocket/ci/test_basic/barcodes.tsv"
-dir_output: "/home/runner/work/sci-rocket/sci-rocket/ci/test_basic/output"
+path_samples: "ci/test_basic/samplesheet.tsv"
+path_barcodes: "ci/test_basic/barcodes.tsv"
+dir_output: "ci/test_basic/output"
 species: 
   Zebrafish:
-    genome: "/home/runner/work/sci-rocket/sci-rocket/ci/genome/dna.fa"
-    genome_gtf: "/home/runner/work/sci-rocket/sci-rocket/ci/genome/dna.gtf"
+    genome: "ci/genome/dna.fa"
+    genome_gtf: "ci/genome/dna.gtf"
     star_index: ""
 settings:
   scatter_fastq_split: 2

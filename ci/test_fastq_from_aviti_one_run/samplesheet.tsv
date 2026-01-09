@@ -1,0 +1,7 @@
+path_fastq	experiment_name	p5	p7	rt	sample_name	species	n_expected_cells	hashing
+ci/reads/fastq_from_aviti/one_run/run1	Drer.ZAe	A03:H03	D01:D12	P01-D07:P01-H07	ZAe-10hpf-28	Zebrafish	14421	ci/hash.tsv
+ci/reads/fastq_from_aviti/one_run/run1	Drer.ZAe	A03:H03	D01:D12	P01-A08:P01-H08	ZAe-10hpf-28	Zebrafish	14421	ci/hash.tsv
+ci/reads/fastq_from_aviti/one_run/run1	Drer.ZAe	A03:H03	D01:D12	P01-A09:P01-E09	ZAe-10hpf-28	Zebrafish	14421	ci/hash.tsv
+ci/reads/fastq_from_aviti/one_run/run1	Drer.ZAe	A03:H03	D01:D12	P02-E03:P02-H03	ZAe-14hpf-28	Zebrafish	14421	ci/hash.tsv
+ci/reads/fastq_from_aviti/one_run/run1	Drer.ZAe	A03:H03	D01:D12	P02-A04:P02-H04	ZAe-14hpf-28	Zebrafish	14421	ci/hash.tsv
+ci/reads/fastq_from_aviti/one_run/run1	Drer.ZAe	A03:H03	D01:D12	P02-A05:P02-F05	ZAe-14hpf-28	Zebrafish	14421	ci/hash.tsv

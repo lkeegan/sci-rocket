@@ -41,7 +41,7 @@ def get_expected_cells(wildcards):
 
 rule generate_index_STAR:
     output:
-        temp(directory("{dir_output}/resources/index_star/{species}/")),
+        directory("{dir_output}/resources/index_star/{species}"),
     log:
         "{dir_output}/logs/step3_alignment/generate_index_STAR_{species}.log",
     threads: 20
@@ -60,8 +60,8 @@ rule generate_index_STAR:
     shell:
         """
         # Check if STAR_index is given. If not, generate it.
-        if [ ! -z {params.star_index} ]; then
-            ln -s {params.star_index} {output}
+        if [ -n "{params.star_index}" ]; then
+            ln -s "$(realpath "{params.star_index}")" "{output}"
         else
             STAR {params.extra} --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf} >& {log}
         fi

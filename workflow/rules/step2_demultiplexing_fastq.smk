@@ -100,7 +100,7 @@ rule demultiplex_fastq_split:
         --experiment_name {wildcards.experiment_name} \
         --samples {params.path_samples} \
         --barcodes {params.path_barcodes} \
-        --r1 {input[0]} --r2 {input[1]} \
+        --r1 {input.R1} --r2 {input.R2} \
         --out {output.out_dir} &> {log}
         """
 

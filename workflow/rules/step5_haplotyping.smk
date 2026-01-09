@@ -152,6 +152,7 @@ rule normalize_hybrid_vcf:
 rule download_repeatmasker:
     output:
         repeatmasker=temp("{dir_output}/resources/MGP/rmsk.bed"),
+        rmsk=temp("{dir_output}/resources/MGP/rmsk.txt.gz"),
     threads: 1
     resources:
         mem_mb=1024 * 2,
@@ -162,13 +163,10 @@ rule download_repeatmasker:
     message: "Downloading Repeatmasker file (GRCm39)."
     shell:
         """
-        wget -O resources/MGP/rmsk.txt.gz {params.url_repeatmasker}
+        wget -O {output.rmsk} {params.url_repeatmasker}
 
         # Convert to BED format.
-        zgrep -E "\\(.\)n" resources/MGP/rmsk.txt.gz | awk '{{print $6"\t"$7"\t"$8"\t"$11"\t"$12"\t"$13}}' > {output.repeatmasker}
-
-        # Remove temporary file.
-        rm resources/MGP/rmsk.txt.gz
+        zgrep -E "\\(.\)n" {output.rmsk} | awk '{{print $6"\t"$7"\t"$8"\t"$11"\t"$12"\t"$13}}' > {output.repeatmasker}
         """
 
 

@@ -1,0 +1,10 @@
+path_samples: "samplesheet.tsv"
+path_barcodes: "../barcodes_bcl.tsv"
+dir_output: "output"
+species:
+  Zebrafish:
+    genome: "../data/genome/dna.fa"
+    genome_gtf: "../data/genome/dna.gtf"
+    star_index: "../test_bcl_one_run/output/resources/index_star/Zebrafish"
+settings:
+  scatter_fastq_split: 2

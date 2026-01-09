@@ -162,3 +162,5 @@ cython_debug/
 # Additional files.
 .DS_Store
 workflow/examples/test_output/
+
+*.snakemake

@@ -4,7 +4,7 @@ import pytest
 
 
 def load_scidash_data(run_type: str) -> dict:
-    data_path = Path(__file__).parent.parent.parent / f"test_fastq_from_aviti_{run_type}" / "output" / "Drer.ZAe" / "sci-dash" / "js" / "qc_data.js"
+    data_path = Path(__file__).parent.parent.parent / f"test_{run_type}" / "output" / "zfish" / "sci-dash" / "js" / "qc_data.js"
     assert data_path.exists()
     with open(data_path, "r") as f:
         json_data = f.read().split("var data = ")[1]
@@ -37,7 +37,7 @@ def load_scidash_data(run_type: str) -> dict:
 ]
 )
 def test_output_consistent_between_one_run_and_two_runs(field: str):
-    """This test requires that the ci/test_fastq_from_aviti_one_run and ci/test_fastq_from_aviti_two_runs workflows have been run."""
-    one_run_data = load_scidash_data("one_run")
-    two_runs_data = load_scidash_data("two_runs")
-    assert one_run_data[field] == two_runs_data[field]
+    """This test requires that the ci/test_bcl_one_run and ci/test_fastq_from_bcl_one_run workflows have been run."""
+    reference_data = load_scidash_data("bcl_one_run")
+    this_data = load_scidash_data("fastq_from_bcl_one_run")
+    assert reference_data[field] == this_data[field]

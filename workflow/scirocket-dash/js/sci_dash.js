@@ -4,6 +4,21 @@
 // Helper functions
 //--------------------------------------------
 
+// Function that copies uncorrectable barcodes to clipboard
+function copyUncorrectableBarcodes(type) {
+    if (!data.top_uncorrectables[type]) {
+        return alert("No data available for " + type);
+    }
+    navigator.clipboard.writeText(data.top_uncorrectables[type].map(d => `${d.barcode}`).join("\n"));
+}
+
+// Attach click listeners to all .copy-btn buttons
+document.querySelectorAll(".copy-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        copyUncorrectableBarcodes(btn.dataset.type);
+    });
+});
+
 // Helper function to create an element with class and innerHTML
 const createElement = (type, className, innerHTML) => {
   const element = document.createElement(type);

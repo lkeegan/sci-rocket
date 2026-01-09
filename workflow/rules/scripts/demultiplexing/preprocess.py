@@ -133,9 +133,9 @@ def sanity_samples(log, samples, barcodes, config):
         log.error("Sanity check (Sample sheet) - Missing required column(s): {}".format(", ".join(required_columns.difference(samples.columns))))
         return False
     
-    # Check if path_bcl or path_fastq exist in the sample sheet.
-    if "path_bcl" not in samples.columns and "path_fastq" not in samples.columns:
-        log.error("Sanity check (Sample sheet) - Missing either path_bcl or path_fastq column.")
+    # Check if path, path_bcl or path_fastq exist in the sample sheet.
+    if "path_reads" not in samples.columns and "path_bcl" not in samples.columns and "path_fastq" not in samples.columns:
+        log.error("Sanity check (Sample sheet) - Missing 'path' (or 'path_bcl' or 'path_fastq') column.")
         return False
 
     # Check if the sample sheet contains species which are not defined in the config.
@@ -301,22 +301,31 @@ def get_samples(config: dict) -> pd.DataFrame:
     # Perform sanity checks.
     check_sanity(samples, barcodes, config)
 
-    ## Generate the sequencing_name based on the last folder name of the path_bcl or path_fastq.
     if "path_fastq" in samples.columns and "path_bcl" in samples.columns:
         print("Both BCL and FASTQ paths are specified in the samples file. Will start from FASTQ.")
 
-    if "path_fastq" in samples.columns:
-        samples["path_fastq"] = samples["path_fastq"].str.rstrip("/")
-        samples["path_bcl"] = samples["path_fastq"]
-        samples["sequencing_name"] = samples["path_fastq"].str.split("/").str[-1]
-    elif "path_bcl" in samples.columns:
-        samples["path_bcl"] = samples["path_bcl"].str.rstrip("/")
-        samples["sequencing_name"] = samples["path_bcl"].str.split("/").str[-1]
-    else:
-        raise ValueError("Either path_bcl or path_fastq must be specified in the samples file.")
+    # If 'path_reads' column is not provided, use 'path_bcl' or 'path_fastq' column as 'path_reads'.
+    if "path_reads" not in samples.columns:
+        for col in ["path_bcl", "path_fastq"]:
+            if col in samples.columns:
+                samples["path_reads"] = samples[col]
+                samples.drop(col, axis=1, inplace=True)
+    samples["path_reads"] = samples["path_reads"].str.rstrip("/")
 
-    # Select unique samples for which to generate sample-specific files.
-    return samples.drop_duplicates(subset=["path_bcl", "sequencing_name", "experiment_name", "sample_name", "species"])
+    # Drop duplicate rows based on experiment_name, sample_name, species and path.
+    samples.drop_duplicates(subset=["path_reads", "experiment_name", "sample_name", "species"], inplace=True)
+
+    # Generate the sequencing_name based on the last folder name of the path
+    sequencing_name = samples["path_reads"].str.split("/").str[-1]
+    # Append a counter to sequencing_name in case of duplicates with differing paths within the same experiment.
+    # This avoids overwriting data for samples with different paths but same sequencing_name within the same experiment.
+    path_id = (
+        samples.groupby(["experiment_name", sequencing_name])["path_reads"]
+        .transform(lambda s: pd.factorize(s)[0])
+    )
+    samples["sequencing_name"] = sequencing_name + path_id.where(path_id.eq(0), "_" + path_id.astype(str)).replace(0, "")
+
+    return samples
 
 
 def get_haplotyping_samples(samples_unique: pd.DataFrame) -> pd.DataFrame:

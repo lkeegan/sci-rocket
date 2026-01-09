@@ -1,4 +1,4 @@
-path_fastq	experiment_name	p5	p7	rt	sample_name	species	n_expected_cells	hashing
+path_reads	experiment_name	p5	p7	rt	sample_name	species	n_expected_cells	hashing
 ../data/reads/fastq_from_aviti/two_runs/run1	Drer.ZAe	A03:H03	D01:D12	P01-D07:P01-H07	ZAe-10hpf-28	Zebrafish	14421 	../hash.tsv
 ../data/reads/fastq_from_aviti/two_runs/run1	Drer.ZAe	A03:H03	D01:D12	P01-A08:P01-H08	ZAe-10hpf-28	Zebrafish	14421 	../hash.tsv
 ../data/reads/fastq_from_aviti/two_runs/run1	Drer.ZAe	A03:H03	D01:D12	P01-A09:P01-E09	ZAe-10hpf-28	Zebrafish	14421	../hash.tsv

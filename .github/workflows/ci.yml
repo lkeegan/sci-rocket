@@ -14,9 +14,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - run: pip install pytest
+      - run: pip install pytest pandas
+      - name: Unit tests
+        run: pytest tests/unit -vvv
       - name: Download test data
-        run: mkdir -p tests/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.08/test-data.tgz | tar -xvzf - -C tests/data
+        run: mkdir -p tests/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.09/test-data.tgz | tar -xvzf - -C tests/data
       - name: Run workflow test_bcl_one_run
         uses: snakemake/snakemake-github-action@v2
         with:

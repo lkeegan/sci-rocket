@@ -1,31 +1,17 @@
-#   * Convert BCL files to Undetermined.fastq.gz files with p5+p7 in the read-name. *
+#   * Convert reads to Undetermined.fastq.gz files with p5+p7 in the read-name. *
 #
 #   1. make_fake_samplesheet:       Generate fake sample-sheet to allow indexes to be added to R1/R2.
-#   2. bcl2fastq:                   Convert bcl to fastq with p5 and p7 indexes within the read name.
+#   2. reads2fastq:                   Convert bcl to fastq with p5 and p7 indexes within the read name.
 #############
 
 from pathlib import Path
 
 
-def get_bcl2fastq_input(sequencing_name, experiment_name):
+def get_path(sequencing_name, experiment_name):
     """
-    Return the path to the bcl file for a given sequencing run.
+    Return the path to the reads for a given sequencing run.
     """
-    return samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_bcl.values[0]
-
-
-def get_folder_undetermined(sequencing_name, experiment_name):
-    """
-    Return the path to the folder containing the Undetermined fastq files (R1 and R2) for a given sequencing run from the samplesheet (path_fastq)
-    """
-    if "path_fastq" not in samples_unique.columns:
-        return ""
-    else:
-        if samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0] == "None":
-            return ""
-        else:
-            # If yes, then use the path from the samplesheet as an absolute path for symlinking
-            return str(Path(samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_fastq.values[0]).resolve())
+    return samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_reads.values[0]
 
 
 rule make_fake_samplesheet:
@@ -42,9 +28,9 @@ rule make_fake_samplesheet:
         """
 
 
-rule bcl2fastq:
+rule reads2fastq:
     input:
-        path_bcl=lambda w: get_bcl2fastq_input(w.sequencing_name, w.experiment_name),
+        path=lambda w: get_path(w.sequencing_name, w.experiment_name),
         fake_sample_sheet="{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/fake.csv",
     output:
         R1=temp("{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R1_001.fastq.gz"),
@@ -59,26 +45,47 @@ rule bcl2fastq:
     params:
         path_out="{dir_output}/{experiment_name}/raw_reads/{sequencing_name}/",
         extra=config["settings"]["bcl2fastq"],
-        path_fastq=lambda w: get_folder_undetermined(w.sequencing_name, w.experiment_name),
     conda:
         "envs/sci-rocket.yaml",
     message: "Converting bcl to fastq with p5 and p7 indexes within the read name ({wildcards.experiment_name}: {wildcards.sequencing_name})."
     shell:
-        """
-        if [ ! -z {params.path_fastq} ]; then
-            # If the path_fastq is defined in the samplesheet, then just symlink the files.
-            ln -s {params.path_fastq}/Undetermined_S0_R1_001.fastq.gz {output.R1}
-            ln -s {params.path_fastq}/Undetermined_S0_R2_001.fastq.gz {output.R2}
-        else
-            # If the path_fastq is not defined in the samplesheet, then run bcl2fastq.
+        r"""
+        exec > "{log}" 2>&1
+        
+        if [[ -f "{input.path}/RunInfo.xml" ]]; then
+            echo "Found RunInfo.xml in {input.path}: running bcl2fastq to convert to fastq.gz"
             bcl2fastq \
             {params.extra} \
-            -R {input.path_bcl} \
-            --sample-sheet {input.fake_sample_sheet} \
-            --output-dir {params.path_out} \
+            -R "{input.path}" \
+            --sample-sheet "{input.fake_sample_sheet}" \
+            --output-dir "{params.path_out}" \
             --loading-threads 8 \
             --processing-threads 30 \
-            --writing-threads 2 &> {log}
+            --writing-threads 2
+        else
+            echo "No RunInfo.xml found in {input.path}, treating input as FASTQ folder"
+            # Look for fastq files of the form *_R1*fastq.gz and *_R2*fastq.gz
+            mapfile -t R1_FILES < <(find "{input.path}" -maxdepth 1 -type f -iname "*R1*.fastq.gz")
+            mapfile -t R2_FILES < <(find "{input.path}" -maxdepth 1 -type f -iname "*R2*.fastq.gz")
+    
+            if [[ ${{#R1_FILES[@]}} -ne 1 || ${{#R2_FILES[@]}} -ne 1 ]]; then
+                echo "ERROR: Expected exactly one R1 and one R2 .fastq.gz in {input.path}"
+                echo "Found ${{#R1_FILES[@]}} R1 files:"
+                printf '  %s\n' "${{R1_FILES[@]}}"
+                echo "Found ${{#R2_FILES[@]}} R2 files:"
+                printf '  %s\n' "${{R2_FILES[@]}}"
+                exit 1
+            fi
+            
+            R1="$(realpath "${{R1_FILES[0]}}")"
+            R2="$(realpath "${{R2_FILES[0]}}")"
+
+            echo "Found fastq.gz files, creating symlinks:"
+            echo "  R1: $R1 -> {output.R1}"
+            echo "  R2: $R2 -> {output.R2}"
+
+            ln -sf "$R1" "{output.R1}"
+            ln -sf "$R2" "{output.R2}"
         fi
         """
 

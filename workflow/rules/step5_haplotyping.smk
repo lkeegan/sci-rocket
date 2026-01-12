@@ -342,7 +342,7 @@ rule join_counts:
     message:
         "Retrieving counts from {input.counts_h1}, {input.counts_h2} and {input.counts_ua}."
     shell:
-        """
+        r"""
         python3 {workflow.basedir}/rules/scripts/haplotyping/join_counts.py \
             --h1 {input.counts_h1} \
             --h2 {input.counts_h2} \

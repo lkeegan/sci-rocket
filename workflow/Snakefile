@@ -53,7 +53,7 @@ rule all:
 # Load rules ----
 
 
-include: "rules/step1_bcl2fastq.smk"
+include: "rules/step1_reads2fastq.smk"
 include: "rules/step2_demultiplexing_fastq.smk"
 include: "rules/step3_alignment.smk"
 include: "rules/step4_dashboard.smk"

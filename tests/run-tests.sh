@@ -18,7 +18,7 @@ rm -rf test_*/output
 # download test data (reads and genome) if not already present
 if [ ! -d "data" ]; then
     mkdir -p data
-    wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.08/test-data.tgz | tar -xvzf - -C data
+    wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/latest/download/test-data.tgz | tar -xvzf - -C data
 fi
 
 # run each test workflow and its associated pytest tests

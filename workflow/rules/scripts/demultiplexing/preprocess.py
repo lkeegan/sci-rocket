@@ -301,18 +301,25 @@ def get_samples(config: dict) -> pd.DataFrame:
     # Perform sanity checks.
     check_sanity(samples, barcodes, config)
 
-    if "path_fastq" in samples.columns and "path_bcl" in samples.columns:
-        print("Both BCL and FASTQ paths are specified in the samples file. Will start from FASTQ.")
-
     # If 'path_reads' column is not provided, use 'path_bcl' or 'path_fastq' column as 'path_reads'.
     if "path_reads" not in samples.columns:
+        if "path_fastq" in samples.columns and "path_bcl" in samples.columns:
+            print("Both BCL and FASTQ paths are specified in the samples file - using FASTQ.")
         for col in ["path_bcl", "path_fastq"]:
             if col in samples.columns:
                 samples["path_reads"] = samples[col]
                 samples.drop(col, axis=1, inplace=True)
-    samples["path_reads"] = samples["path_reads"].str.rstrip("/")
 
-    # Drop duplicate rows based on experiment_name, sample_name, species and path.
+    # Split any path_reads entries which contain multiple semicolon-separated paths into multiple rows.
+    samples = (
+        samples
+        .assign(path_reads=samples["path_reads"].str.split(";"))
+        .explode("path_reads", ignore_index=True)
+        .assign(path_reads=lambda d: d["path_reads"].str.strip().str.rstrip("/"))
+        .query("path_reads != ''")
+    )
+
+    # Drop duplicate rows based on experiment_name, sample_name, species and path_reads.
     samples.drop_duplicates(subset=["path_reads", "experiment_name", "sample_name", "species"], inplace=True)
 
     # Generate the sequencing_name based on the last folder name of the path

@@ -40,8 +40,8 @@ def write_cell_hashing_table(qc, out):
     # Convert to pandas dataframe.
     df_hashing = pd.DataFrame(columns=["experiment_name", "sample_name", "hashing_name", "cell_barcode", "count", "n_umi"], data=array_hashing)
 
-    # Order on total hash count.
-    df_hashing = df_hashing.sort_values(by=["count"], ascending=False)
+    # Order on total hash count (and by cell_barcode for equal counts).
+    df_hashing = df_hashing.sort_values(by=["count", "cell_barcode"], ascending=False)
 
     # Generate folder.
     if not os.path.exists(os.path.dirname(out)):

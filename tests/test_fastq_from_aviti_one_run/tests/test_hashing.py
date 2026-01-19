@@ -20,6 +20,6 @@ def test_hashing_metrics():
     # check top five
     assert data[0] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_D7', 'TTGATTGGCGGGCCGTCAACAATTCTAGGTTTAATTGAAT', '22', '22']
     assert data[1] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A8', 'CTAGCCAGCCCTTAATCTTGCGTCTTCCTGTATCATGATC', '17', '17']
-    assert data[2] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_B7', 'GCATATGAGCCTCCTGGACCTGATGCGATGGTTACGCAAG', '15', '15']
-    assert data[3] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A7', 'TTGGCAAGCCGGTCTCGCCGATGGTTGGTGACTATAGGTT', '15', '15']
+    assert data[2] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A7', 'TTGGCAAGCCGGTCTCGCCGATGGTTGGTGACTATAGGTT', '15', '15']
+    assert data[3] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_B7', 'GCATATGAGCCTCCTGGACCTGATGCGATGGTTACGCAAG', '15', '15']
     assert data[4] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_C7', 'TGCGACCTCTGGTCTCGCCGTGGATTCTATGAGCATATGG', '14', '14']

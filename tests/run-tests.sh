@@ -24,7 +24,7 @@ fi
 # run each test workflow and its associated pytest tests
 for test_dir in test_bcl_one_run test_bcl_two_runs test_fastq_from_bcl_one_run test_fastq_from_bcl_two_runs test_fastq_from_aviti_one_run test_fastq_from_aviti_two_runs; do
     snakemake --cores all --use-conda --configfile $test_dir/config.yaml -s ../workflow/Snakefile -d $test_dir
-    pytest $test_dir
+    pytest $test_dir -vvv
 done
 
 echo "All tests completed successfully."

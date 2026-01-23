@@ -5,6 +5,20 @@ import os
 import pandas as pd
 import pickle
 import sys
+import pathlib
+
+
+def get_benchmarks(path_benchmarks) -> list[dict]:
+    frames = []
+    for path in sorted(pathlib.Path(path_benchmarks).glob("*.txt")) + sorted(pathlib.Path(path_benchmarks).parent.glob("*.txt")):
+        df = pd.read_csv(path, sep="\t")
+        df.insert(0, "job", path.stem)
+        frames.append(df)
+    if not frames:
+        return []
+    df = pd.concat(frames, ignore_index=True, sort=False)
+    return df.to_dict('records')
+
 
 def write_cell_hashing_table(qc, out):
     """
@@ -63,7 +77,7 @@ def write_cell_hashing_table(qc, out):
     return dict_hashing
 
 
-def combine_logs(path_pickle, path_star, path_hashing):
+def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
     """
     Combine the demuxxing logs with the STAR logs for the sci-dash.
 
@@ -71,6 +85,7 @@ def combine_logs(path_pickle, path_star, path_hashing):
         path_pickle (str): Path to the pickled dictionaries.
         path_star (str): Path to the STAR output folder.
         path_hashing (str): Path to store the hashing metrics.
+        path_benchmarks (str): Path to workflow benchmarks.
 
     Returns:
         qc (dict): Dictionary containing the demuxxing statistics (in JSON format).
@@ -191,6 +206,8 @@ def combine_logs(path_pickle, path_star, path_hashing):
         qc_json["hashing"] = {}
     # endregion ----------------------------------------------------------------------------------------------------------
 
+    qc_json["benchmarks"] = get_benchmarks(path_benchmarks)
+
     # Return JSON-structured dict.
     return qc_json
 
@@ -202,6 +219,7 @@ def main(arguments):
     parser.add_argument("--path_star", required=True, type=str, help="(str) Path to the star alignment folder.")
     parser.add_argument("--path_out", required=True, type=str, help="(str) Path to store JSON structure.")
     parser.add_argument("--path_hashing", required=True, type=str, help="(str) Path to store hashing metrics (if applicable).")
+    parser.add_argument("--path_benchmarks", required=True, type=str, help="(str) Path to workflow benchmarks.")
 
     parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="Display help and exit.")
 
@@ -209,7 +227,7 @@ def main(arguments):
     args = parser.parse_args()
 
     # Combine the demuxxing logs with the STAR logs for the sci-dash.
-    qc_json = combine_logs(args.path_pickle, args.path_star, args.path_hashing)
+    qc_json = combine_logs(args.path_pickle, args.path_star, args.path_hashing, args.path_benchmarks)
 
     # Write the JSON structure to file.
     if not os.path.exists(os.path.dirname(args.path_out)):

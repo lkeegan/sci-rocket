@@ -525,6 +525,7 @@ def sciseq_sample_demultiplexing(log: logging.Logger, experiment_name: str, samp
         log.info("Done: %d read-pairs processed (%d discarded, %d hashing reads)", qc["n_pairs"], qc["n_pairs_failure"], qc["n_hashing"])
     else:
         log.info("Done: %d read-pairs processed (%d discarded,)", qc["n_pairs"], qc["n_pairs_failure"])
+    log.info(sciRecord._sciRecord__find_closest_match.cache_info())
         
     # Close the file handlers.
     for fh in dict_fh.values():

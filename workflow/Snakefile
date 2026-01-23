@@ -29,6 +29,9 @@ wildcard_constraints:
 # Workflow output. ----
 
 dir_output = config["dir_output"].rstrip("/")
+def out(p: str) -> str:
+    return f"{dir_output}/{p.lstrip('/')}"
+
 
 # Scatter-gather settings.
 scattergather:
@@ -38,11 +41,11 @@ scattergather:
 rule all:
     input:
         # Run sci-rocket demultiplexing pipeline.
-        expand(f"{dir_output}/{{experiment_name}}/sci-dash/", experiment_name=samples_unique["experiment_name"]),
+        expand(out("{experiment_name}/sci-dash/"), experiment_name=samples_unique["experiment_name"]),
        
         # Optional haplotyping rule (Mus musculus).
         expand(
-            f"{dir_output}/{{experiment_name}}/haplotyping/{{sample_name}}_{{strain1}}_{{strain2}}_haplotagged_readcounts.txt",
+            out("{experiment_name}/haplotyping/{sample_name}_{strain1}_{strain2}_haplotagged_readcounts.txt"),
             experiment_name=samples_unique_haplotyping["experiment_name"],
             sample_name=samples_unique_haplotyping["sample_name"],
             strain1=samples_unique_haplotyping["strain1"],

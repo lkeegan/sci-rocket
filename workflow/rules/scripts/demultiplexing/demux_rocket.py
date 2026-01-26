@@ -266,7 +266,7 @@ def update_qc(qc:dict, x:sciRecord):
     # This reduces the size of the pickle file and we only display the top 15 in the QC report.
     if qc["n_pairs"] % 1000000 == 0:
         for key in ["p5", "p7", "ligation", "rt"]:
-            qc[f"uncorrectable_{key}"] = sorted(qc[f"uncorrectable_{key}"], key=lambda item: item[1], reverse=True)[:50]
+            qc[f"uncorrectable_{key}"] = defaultdict(int, dict(sorted(qc[f"uncorrectable_{key}"].items(), key=lambda kv: kv[1], reverse=True)[:50]))
 
     # Return the updated QC dictionary.
     return qc

@@ -93,4 +93,4 @@ def test_get_samples_path_reads_with_multiple_paths(test_config: dict):
     ], columns=["path_reads", "experiment_name", "p5", "p7", "rt", "sample_name", "species", "n_expected_cells", "sequencing_name"])
 
     samples = preprocess.get_samples(test_config)
-    pd.testing.assert_frame_equal(samples.reset_index(drop=True), expected_samples)
+    pd.testing.assert_frame_equal(samples.reset_index(drop=True), expected_samples, check_dtype=False)

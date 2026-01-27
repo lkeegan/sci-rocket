@@ -7,7 +7,7 @@
     <title>sci-dash</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <!-- CSS files -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css">
   </head>
 
   <body>
@@ -36,7 +36,7 @@
               <div class="col">
                 <!-- Page pre-title -->
                 <div class="page-pretitle">Overview</div>
-                <h2 class="page-title">Dashboard:&nbsp<div id="experiment_name">N/A</div></h2>
+                <h2 class="page-title">Dashboard:&nbsp<span id="experiment_name">N/A</span></h2>
               </div>
             </div>
           </div>
@@ -106,7 +106,7 @@
                       <div class="subheader">No. of corrections (R1): <span style="color: #d63939" id="n_total_corrections">N/A</span></div>
                       <div class="ms-auto lh-1"></div>
                     </div>
-                    <div style="height: 100px"><canvas id='chart-rescues'> </canvas></div>
+                    <div style="height: 100px"><canvas id='chart-rescues'></canvas></div>
                     <!--Start - Sample counter-->
                     <div class="d-flex align-items-center">
                       <div class="subheader">Total demultiplexed samples</div>
@@ -172,19 +172,19 @@
                 </div>
               </div>
               <!--End - Sequencing overview-->
-              <!--Chart - Succesfull read-pairs per sample-->
+              <!--Chart - Successfull read-pairs per sample-->
               <div class="col-sm-6 col-lg-9">
                 <div class="card">
                   <div class="card-body">
                     <div class="subheader">
-                      Succesfull read-pairs per sample <br />
+                      Successfull read-pairs per sample <br />
                       <sub>p5+p7+ligation+RT</sub>
                     </div>
-                    <div class="chart-sm" style="min-height: 325px"><canvas id='chart-n_pairs_sample'> </canvas></div>
+                    <div class="chart-sm" style="min-height: 325px"><canvas id='chart-n_pairs_sample'></canvas></div>
                   </div>
                 </div>
               </div>
-              <!--End Chart - Succesfull read-pairs per sample-->
+              <!--End Chart - Successfull read-pairs per sample-->
               <div class="col-md-12">
                 <div class="card">
                   <div class="card-header">
@@ -221,7 +221,7 @@
                           <div class="row">
                             <div class="card">
                               <div class="card-body">
-                                <div id="table-default" class="table-responsive">
+                                <div class="table-responsive">
                                   <table class="table" id="sample-starsolo-table">
                                   </table>
                                 </div>
@@ -231,24 +231,8 @@
                         </div>
                       </div>
                       <!--End Tab: Cells-->
-                      <!--Tab: Alignment-->
-                      <div class="tab-pane" id="tabs-alignment">
-                        <div class="container">
-                          <div class="row">
-                            <div class="card">
-                              <div class="card-body">
-                                <div id="table-default" class="table-responsive">
-                                  <table class="table card-table table-vcenter text-nowrap datatable" id="sample-alignment-table">
-                                  </table>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <!--End Tab: Alignment-->
                       <!--Tab: PCR Indexes-->
-                      <div class="tab-pane show" id="tabs-pcr">
+                      <div class="tab-pane" id="tabs-pcr">
                         <h4>Counts - PCR Indexes</h4>
                         <div class="container">
                           <div class="row">
@@ -347,7 +331,7 @@
                           <div class="row">
                             <div class="card">
                               <div class="card-body">
-                                <div id="table-default" class="table-responsive">
+                                <div class="table-responsive">
                                   <table class="table" id="sample-hashing-table">
                                   </table>
                                 </div>
@@ -385,7 +369,7 @@
                                     <sub>(Top 15)</sub>
                                   </div>
                                   <div class="chart-lg" style="min-height: 400px"><canvas id="chart-top_uncorrectables_p5"></canvas></div>
-                                  <div class="text-center mt-2"><button class="btn btn-sm btn-outline-primary copy-btn" data-type="p5">Copy barcodes</button></div>
+                                  <div class="text-center mt-2"><button type="button" class="btn btn-sm btn-outline-primary copy-btn" data-type="p5">Copy barcodes</button></div>
                                 </div>
                               </div>
                             </div>
@@ -399,7 +383,7 @@
                                     <sub>(Top 15)</sub>
                                   </div>
                                   <div class="chart-lg" style="min-height: 400px"><canvas id="chart-top_uncorrectables_p7"></canvas></div>
-                                  <div class="text-center mt-2"><button class="btn btn-sm btn-outline-primary copy-btn" data-type="p7">Copy barcodes</button></div>
+                                  <div class="text-center mt-2"><button type="button" class="btn btn-sm btn-outline-primary copy-btn" data-type="p7">Copy barcodes</button></div>
                                 </div>
                               </div>
                             </div>
@@ -413,7 +397,7 @@
                                     <sub>(Top 15)</sub>
                                   </div>
                                   <div class="chart-lg" style="min-height: 400px"><canvas id="chart-top_uncorrectables_lig"></canvas></div>
-                                  <div class="text-center mt-2"><button class="btn btn-sm btn-outline-primary copy-btn" data-type="ligation">Copy barcodes</button></div>
+                                  <div class="text-center mt-2"><button type="button" class="btn btn-sm btn-outline-primary copy-btn" data-type="ligation">Copy barcodes</button></div>
                                 </div>
                               </div>
                             </div>
@@ -427,7 +411,7 @@
                                     <sub>(Top 15)</sub>
                                   </div>
                                   <div class="chart-lg" style="min-height: 400px"><canvas id="chart-top_uncorrectables_rt"></canvas></div>
-                                  <div class="text-center mt-2"><button class="btn btn-sm btn-outline-primary copy-btn" data-type="rt">Copy barcodes</button></div>
+                                  <div class="text-center mt-2"><button type="button" class="btn btn-sm btn-outline-primary copy-btn" data-type="rt">Copy barcodes</button></div>
                                 </div>
                               </div>
                             </div>
@@ -443,7 +427,7 @@
                           <div class="row">
                             <div class="card">
                               <div class="card-body">
-                                <div id="table-default" class="table-responsive">
+                                <div class="table-responsive">
                                   <table class="table" id="benchmarks-table"></table>
                                 </div>
                               </div>
@@ -477,15 +461,15 @@
     </div>
     
     <!--Import tabler from CDN-->
-    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js"></script>
 
     <!-- Import tablesorter from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js"></script>
     
     <!-- Import chart.js from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@3.0.0/dist/chartjs-chart-matrix.min.js"></script>
 
     <!-- Import anychart from CDN -->
     <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
@@ -494,7 +478,7 @@
 
 
     <!--Import charts and data.-->
-    <script src="./js/qc_data.js"></script>
-    <script src="./js/sci_dash.js"></script>
+    <script defer src="./js/qc_data.js"></script>
+    <script defer src="./js/sci_dash.js"></script>
   </body>
 </html>

@@ -163,23 +163,38 @@ document.addEventListener("DOMContentLoaded", () => {
 //--------------------------------------------
 
 // Generate the data for the doughnut chart.
-const data_correctable_barcodes = {
-  labels: ["p5", "p7", "ligation", "RT", "hashing"],
-  datasets: [
-    {
-      data: [data.n_corrected_p5, data.n_corrected_p7, data.n_corrected_ligation, data.n_corrected_rt, data.n_corrected_hashing],
-      backgroundColor: ["#d63939", "#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd"],
-    },
-  ],
-};
+function buildCorrectableBarcodesDoughnutData(data) {
+  const specs = [
+    { label: "p5", key: "n_corrected_p5", color: "#d63939" },
+    { label: "p7", key: "n_corrected_p7", color: "#1f77b4" },
+    { label: "ligation", key: "n_corrected_ligation", color: "#ff7f0e" },
+    { label: "RT", key: "n_corrected_rt", color: "#2ca02c" },
+    { label: "hashing", key: "n_corrected_hashing", color: "#9467bd" },
+  ];
 
-// Remove data which is 0
-for (let i = 0; i < data_correctable_barcodes.datasets[0].data.length; i++) {
-  if (data_correctable_barcodes.datasets[0].data[i] === 0) {
-    data_correctable_barcodes.datasets[0].data.splice(i, 1);
-    data_correctable_barcodes.labels.splice(i, 1);
-    data_correctable_barcodes.datasets[0].backgroundColor.splice(i, 1);
+  const labels = [];
+  const values = [];
+  const colors = [];
+
+  for (const { label, key, color } of specs) {
+    // Get the count for this label and skip if zero or invalid.
+    const v = Number(data?.[key] ?? 0);
+    if (!Number.isFinite(v) || v === 0) continue;
+
+    labels.push(label);
+    values.push(v);
+    colors.push(color);
   }
+
+  return {
+    labels,
+    datasets: [
+      {
+        data: values,
+        backgroundColor: colors,
+      },
+    ],
+  };
 }
 
 // Generate the doughnut chart.
@@ -188,7 +203,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var ctx = document.getElementById("chart-rescues").getContext("2d");
   var chart = new Chart(ctx, {
     type: "doughnut",
-    data: data_correctable_barcodes,
+    data: buildCorrectableBarcodesDoughnutData(data),
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -208,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 //--------------------------------------------
-// Chart - No. of succesfull pairs per sample.
+// Chart - No. of successfull pairs per sample.
 //--------------------------------------------
 
 var sample_n_pairs_success = [];
@@ -229,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("chart-n_pairs_sample").innerHTML = ''
   var ctx = document.getElementById("chart-n_pairs_sample").getContext("2d");
 
-  chart_n_pair = new Chart(ctx, {
+  const chart_n_pair = new Chart(ctx, {
     type: "bar",
     data: {
       labels: sample_n_pairs_success.map(function (d) {
@@ -237,11 +252,10 @@ document.addEventListener("DOMContentLoaded", function () {
       }),
       datasets: [
         {
-          label: "No. of succesfull pairs",
+          label: "No. of successfull pairs",
           data: sample_n_pairs_success.map(function (d) {
             return d.frequency;
           }),
-          backgroundColor: "#1f77b4",
           backgroundColor: [
             'rgba(255, 99, 132, 0.9)',
             'rgba(255, 159, 64, 0.9)',
@@ -279,7 +293,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
       }
     },
-  }); 
+  });
 });
 
 //--------------------------------------------
@@ -299,7 +313,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var ctx = document.getElementById("chart-well-p7").getContext("2d");
   generateMatrixChart(data.p7_index_counts, ctx, 255, 105, 180);
 });
-  
+
 // Well - RT plate 1
 document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("chart-rt_plate_01").innerHTML = ''
@@ -350,7 +364,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }else{
     generateMatrixChart(data.rt_barcode_counts.P04, ctx, 255, 140, 0);
   }
-  
+
 });
 
 //--------------------------------------------
@@ -378,7 +392,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  chart_ligation = new Chart(ctx, {
+  const chart_ligation = new Chart(ctx, {
     type: "bar",
     data: {
       labels: ligation_barcode_counts.map(function (d) {
@@ -486,15 +500,6 @@ function generateChart_uncorrectables(id, data, color) {
           },
         },
         scales: {
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              maxRotation: 90,
-              minRotation: 90,
-            }
-          },
           y: {
             ticks: {
               font: {
@@ -505,13 +510,14 @@ function generateChart_uncorrectables(id, data, color) {
             },
           },
           x: {
+            grid: {
+              display: false
+            },
             ticks: {
               font: {
                 family: "Courier New",
                 size: 10,
               },
-              maxRotation: 90,
-              minRotation: 90,
             },
           }
         }
@@ -541,8 +547,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function generate_starsolo_table(data) {
   const table = document.getElementById("sample-starsolo-table");
+  table.className = "table card-table table-vcenter text-nowrap datatable tablesorter";
   table.innerHTML = `
-    <table class="tablesorter" id="sample-starsolo-table">
       <thead>
         <tr>
           <th style="text-align:center">
@@ -596,12 +602,11 @@ function generate_starsolo_table(data) {
         </tr>
       </thead>
       <tbody class="table-tbody">
-        <tr></tr>
-      </tbody>
-    </table>`;
+      </tbody>`;
 
+  const tbody = table.querySelector("tbody");
   for (const sample in data) {
-    const row = table.insertRow(-1);
+    const row = tbody.insertRow(-1);
     row.insertCell(0).innerHTML = sample;
     row.insertCell(1).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_reads);
     row.insertCell(2).innerHTML = `${roundToOne(data[sample].perc_mapped_reads_genome * 100)}%`;
@@ -648,7 +653,7 @@ document.addEventListener("DOMContentLoaded", function () {
   $("#sample-starsolo-table").tablesorter({
     sortList: [[0, 0]],
   });
-  
+
 });
 
 //--------------------------------------------
@@ -665,8 +670,8 @@ document.addEventListener("DOMContentLoaded", function () {
 // 6. Total count (correct - upstream)
 function generate_hashing_table(data) {
   const table = document.getElementById("sample-hashing-table");
+  table.className = "table card-table table-vcenter text-nowrap datatable tablesorter";
   table.innerHTML = `
-    <table class="tablesorter" id="sample-hashing-table">
       <thead>
         <tr>
           <th style="text-align:center">
@@ -690,13 +695,11 @@ function generate_hashing_table(data) {
         </tr>
       </thead>
       <tbody class="table-tbody">
-        <tr></tr>
-      </tbody>
-    </table>`;
-      
+      </tbody>`;
+  const tbody = table.querySelector("tbody");
   for (var sample in data) {
     for (var hashing_barcode in data[sample]) {
-      const row = table.insertRow(-1);
+      const row = tbody.insertRow(-1);
       row.insertCell(0).innerHTML = sample;
       row.insertCell(1).innerHTML = hashing_barcode;
       row.insertCell(2).innerHTML = Intl.NumberFormat("en-US").format(data[sample][hashing_barcode].n_correct + data[sample][hashing_barcode].n_corrected + data[sample][hashing_barcode].n_correct_upstream);
@@ -731,13 +734,13 @@ function generate_benchmarks_table(benchmarks) {
   table.innerHTML = `
       <thead>
         <tr>
-          <th>Job</th>
-          <th>Time<br><sub>(seconds)</sub></th>
-          <th>Time<br><sub>(h:m:s)</sub></th>
-          <th>Max RAM<br><sub>(gb)</sub></th>
-          <th>IO Read<br><sub>(gb)</sub></th>
-          <th>IO Write<br><sub>(gb)</sub></th>
-          <th>Mean Load<br><sub>(cpus)</sub></th>
+          <th style="text-align:left">Job</th>
+          <th style="text-align:center">Time<br><sub>(seconds)</sub></th>
+          <th style="text-align:center">Time<br><sub>(h:m:s)</sub></th>
+          <th style="text-align:right">Max RAM<br><sub>(gb)</sub></th>
+          <th style="text-align:right">IO Read<br><sub>(gb)</sub></th>
+          <th style="text-align:right">IO Write<br><sub>(gb)</sub></th>
+          <th style="text-align:right">Mean Load<br><sub>(cpus)</sub></th>
         </tr>
       </thead>
       <tbody class="table-tbody"></tbody>
@@ -745,7 +748,7 @@ function generate_benchmarks_table(benchmarks) {
 
   const tbody = table.querySelector("tbody");
 
-  // No data case
+  // No data case (keep it clean)
   if (!Array.isArray(benchmarks) || benchmarks.length === 0) {
     const row = tbody.insertRow(-1);
     const cell = row.insertCell(0);
@@ -772,19 +775,27 @@ function generate_benchmarks_table(benchmarks) {
     row.insertCell(-1).textContent = b.job ?? "N/A";
 
     // Time (seconds)
-    row.insertCell(-1).textContent = fmt_number(b.s, 0);
+    const sCell = row.insertCell(-1);
+    sCell.style.textAlign = "right";
+    sCell.textContent = fmt_number(b.s, 0);
 
     // Time (h:m:s)
-    row.insertCell(-1).textContent = b["h:m:s"] ?? "N/A";
+    const hmsCell = row.insertCell(-1);
+    hmsCell.style.textAlign = "right";
+    hmsCell.textContent = b["h:m:s"] ?? "N/A";
 
     // MB values that should be converted to GB for display
     const fields = ["max_rss","io_in","io_out"];
     for (const key of fields) {
-      row.insertCell(-1).textContent = fmt_number(b[key], 2, 1024);
+      const c = row.insertCell(-1);
+      c.style.textAlign = "right";
+      c.textContent = fmt_number(b[key], 2, 1024);
     }
 
     // Load (convert percentage to cpus)
-    row.insertCell(-1).textContent = fmt_number(b.mean_load, 1, 100);
+      const loadCell = row.insertCell(-1);
+      loadCell.style.textAlign = "right";
+      loadCell.textContent = fmt_number(b.mean_load, 1, 100);
   }
 
 }
@@ -803,168 +814,44 @@ document.addEventListener("DOMContentLoaded", function () {
 // Chart - Sankey diagram of barcodes.
 //--------------------------------------------
 
-value_TTTT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, True, True, True)";
-})[0].value;
-value_TTTF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, True, True, False)";
-})[0].value;
-value_TTFT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, True, False, True)";
-})[0].value;
-value_TTFF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, True, False, False)";
-})[0].value;
-value_TFTT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, False, True, True)";
-})[0].value;
-value_TFTF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, False, True, False)";
-})[0].value;
-value_TFFT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, False, False, True)";
-})[0].value;
-value_TFFF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(True, False, False, False)";
-})[0].value;
-value_FTTT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, True, True, True)";
-})[0].value;
-value_FTTF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, True, True, False)";
-})[0].value;
-value_FTFT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, True, False, True)";
-})[0].value;
-value_FTFF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, True, False, False)";
-})[0].value;
-value_FFTT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, False, True, True)";
-})[0].value;
-value_FFTF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, False, True, False)";
-})[0].value;
-value_FFFT = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, False, False, True)";
-})[0].value;
-value_FFFF = data.uncorrectables_sankey.filter(function (d) {
-  return d.source == "(False, False, False, False)";
-})[0].value;
+function build_uncorrectables_sankey_links(uncorrectables) {
+  if(!Array.isArray(uncorrectables)) return [];
+  // keys and user-visible labels for each entry in the "(True, False, ...)" tuple.
+  const dims = [
+    { key: "p5", label: "p5" },
+    { key: "p7", label: "p7" },
+    { key: "ligation", label: "ligation" },
+    { key: "rt", label: "RT" },
+  ];
 
-var data_sankey_barcodes = [
-  // Good p5 -> Good p7 -> Good ligation -> Good RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TTTT, id: "BZ-1" },
-  { from: "Good p5", to: "Good p7", value: value_TTTT, id: "BZ-2" },
-  { from: "Good p7", to: "Good ligation", value: value_TTTT, id: "BZ-3" },
-  { from: "Good ligation", to: "Good RT", value: value_TTTT, id: "BZ-4" },
-  { from: "Good RT", to: " ", value: value_TTTT, id: "BZ-5" },
+  // Helper to parse tuple strings like "(True, False, True, True)" into [true, false, true, true]
+  const parseTuple = (tupleStr) =>
+    String(tupleStr)
+      .replace(/[()]/g, "")
+      .split(",")
+      .map((s) => s.trim() === "True");
 
-  // Good p5 -> Good p7 -> Good ligation -> Bad RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TTTF, id: "B1-1" },
-  { from: "Good p5", to: "Good p7", value: value_TTTF, id: "B1-2" },
-  { from: "Good p7", to: "Good ligation", value: value_TTTF, id: "B1-3" },
-  { from: "Good ligation", to: "Bad RT", value: value_TTTF, id: "B1-4" },
-  { from: "Bad RT", to: " ", value: value_TTTF, id: "B1-5" },
+  const links = [];
+  for (const item of uncorrectables) {
+    const value = Number(item?.value ?? 0);
+    const bools = parseTuple(item?.source);
+    if (bools.length !== dims.length) continue;
 
-  // Good p5 -> Good p7 -> Bad ligation -> Good RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TTFT, id: "B3-1" },
-  { from: "Good p5", to: "Good p7", value: value_TTFT, id: "B3-2" },
-  { from: "Good p7", to: "Bad ligation", value: value_TTFT, id: "B3-3" },
-  { from: "Bad ligation", to: "Good RT", value: value_TTFT, id: "B3-4" },
-  { from: "Good RT", to: " ", value: value_TTFT, id: "B3-5" },
+    // Unique group ID for this source
+    const groupId = String(item.source).replace(/\s+/g, "");
 
-  // Good p5 -> Good p7 -> Bad ligation -> Bad RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TTFF, id: "B4-1" },
-  { from: "Good p5", to: "Good p7", value: value_TTFF, id: "B4-2" },
-  { from: "Good p7", to: "Bad ligation", value: value_TTFF, id: "B4-3" },
-  { from: "Bad ligation", to: "Bad RT", value: value_TTFF, id: "B4-4" },
-  { from: "Bad RT", to: " ", value: value_TTFF, id: "B4-5" },
+    let from = "Total Bad reads";
+    for (let i = 0; i < dims.length; i++) {
+      const to = `${bools[i] ? "Good" : "Bad"} ${dims[i].label}`;
+      links.push({ from, to, value, id: `${groupId}-${i}` });
+      from = to;
+    }
+    links.push({ from, to: " ", value, id: `${groupId}-end` });
+  }
 
-  // Good p5 -> Bad p7 -> Good ligation -> Good RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TFTT, id: "B5-1" },
-  { from: "Good p5", to: "Bad p7", value: value_TFTT, id: "B5-2" },
-  { from: "Bad p7", to: "Good ligation", value: value_TFTT, id: "B5-3" },
-  { from: "Good ligation", to: "Good RT", value: value_TFTT, id: "B5-4" },
-  { from: "Good RT", to: " ", value: value_TFTT, id: "B5-5" },
-
-  // Good p5 -> Bad p7 -> Bad ligation -> Good RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TFTF, id: "B6-1" },
-  { from: "Good p5", to: "Bad p7", value: value_TFTF, id: "B6-2" },
-  { from: "Bad p7", to: "Bad ligation", value: value_TFTF, id: "B6-3" },
-  { from: "Bad ligation", to: "Good RT", value: value_TFTF, id: "B6-4" },
-  { from: "Good RT", to: " ", value: value_TFTF, id: "B6-5" },
-
-  // Good p5 -> Bad p7 -> Good ligation -> Bad RT
-  { from: "Total Bad reads", to: "Good p5", value: value_TFFT, id: "B7-1" },
-  { from: "Good p5", to: "Bad p7", value: value_TFFT, id: "B7-2" },
-  { from: "Bad p7", to: "Good ligation", value: value_TFFT, id: "B7-3" },
-  { from: "Good ligation", to: "Bad RT", value: value_TFFT, id: "B7-4" },
-  { from: "Bad RT", to: " ", value: value_TFFT, id: "B7-5" },
-
-  // Bad p5 -> Good p7 -> Good ligation -> Good RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_TFFF, id: "A1-1" },
-  { from: "Bad p5", to: "Good p7", value: value_TFFF, id: "A1-2" },
-  { from: "Good p7", to: "Good ligation", value: value_TFFF, id: "A1-3" },
-  { from: "Good ligation", to: "Good RT", value: value_TFFF, id: "A1-4" },
-  { from: "Good RT", to: " ", value: value_TFFF, id: "A1-5" },
-
-  // Bad p5 -> Bad p7 -> Good ligation -> Good RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FFTT, id: "A2-1" },
-  { from: "Bad p5", to: "Bad p7", value: value_FFTT, id: "A2-2" },
-  { from: "Bad p7", to: "Good ligation", value: value_FFTT, id: "A2-3" },
-  { from: "Good ligation", to: "Good RT", value: value_FFTT, id: "A2-4" },
-  { from: "Good RT", to: " ", value: value_FFTT, id: "A2-5" },
-
-  // Bad p5 -> Bad p7 -> Bad ligation -> Good RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FFFT, id: "A3-1" },
-  { from: "Bad p5", to: "Bad p7", value: value_FFFT, id: "A3-2" },
-  { from: "Bad p7", to: "Bad ligation", value: value_FFFT, id: "A3-3" },
-  { from: "Bad ligation", to: "Good RT", value: value_FFFT, id: "A3-4" },
-  { from: "Good RT", to: " ", value: value_FFFT, id: "A3-5" },
-
-  // Bad p5 -> Bad p7 -> Bad ligation -> Bad RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FFFF, id: "A4-1" },
-  { from: "Bad p5", to: "Bad p7", value: value_FFFF, id: "A4-2" },
-  { from: "Bad p7", to: "Bad ligation", value: value_FFFF, id: "A4-3" },
-  { from: "Bad ligation", to: "Bad RT", value: value_FFFF, id: "A4-4" },
-  { from: "Bad RT", to: " ", value: value_FFFF, id: "A4-5" },
-
-  // Bad p5 -> Bad p7 -> Good ligation -> Bad RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FFTF, id: "A5-1" },
-  { from: "Bad p5", to: "Bad p7", value: value_FFTF, id: "A5-2" },
-  { from: "Bad p7", to: "Good ligation", value: value_FFTF, id: "A5-3" },
-  { from: "Good ligation", to: "Bad RT", value: value_FFTF, id: "A5-4" },
-  { from: "Bad RT", to: " ", value: value_FFTF, id: "A5-5" },
-
-  // Bad p5 -> Good p7 -> Bad ligation -> Good RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FTFT, id: "A6-1" },
-  { from: "Bad p5", to: "Good p7", value: value_FTFT, id: "A6-2" },
-  { from: "Good p7", to: "Bad ligation", value: value_FTFT, id: "A6-3" },
-  { from: "Bad ligation", to: "Good RT", value: value_FTFT, id: "A6-4" },
-  { from: "Good RT", to: " ", value: value_FTFT, id: "A6-5" },
-
-  // Bad p5 -> Good p7 -> Bad ligation -> Bad RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FTFF, id: "A7-1" },
-  { from: "Bad p5", to: "Good p7", value: value_FTFF, id: "A7-2" },
-  { from: "Good p7", to: "Bad ligation", value: value_FTFF, id: "A7-3" },
-  { from: "Bad ligation", to: "Bad RT", value: value_FTFF, id: "A7-4" },
-  { from: "Bad RT", to: " ", value: value_FTFF, id: "A7-5" },
-
-  // Bad p5 -> Good p7 -> Good ligation -> Bad RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FTTF, id: "A8-1" },
-  { from: "Bad p5", to: "Good p7", value: value_FTTF, id: "A8-2" },
-  { from: "Good p7", to: "Good ligation", value: value_FTTF, id: "A8-3" },
-  { from: "Good ligation", to: "Bad RT", value: value_FTTF, id: "A8-4" },
-  { from: "Bad RT", to: " ", value: value_FTTF, id: "A8-5" },
-
-  // Bad p5 -> Good p7 -> Good ligation -> Good RT
-  { from: "Total Bad reads", to: "Bad p5", value: value_FTTT, id: "A9-1" },
-  { from: "Bad p5", to: "Good p7", value: value_FTTT, id: "A9-2" },
-  { from: "Good p7", to: "Good ligation", value: value_FTTT, id: "A9-3" },
-  { from: "Good ligation", to: "Good RT", value: value_FTTT, id: "A9-4" },
-  { from: "Good RT", to: " ", value: value_FTTT, id: "A9-5" },
-];
+  return links;
+}
+const data_sankey_barcodes = build_uncorrectables_sankey_links(data.uncorrectables_sankey);
 
 document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("chart-sankey").innerHTML = ''
@@ -1010,10 +897,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // Highlight all links with the same id beginning.
     series.links.template.events.on("pointerover", function (event) {
       var dataItem = event.target.dataItem;
-      var id = dataItem.get("id").split("-")[0];
+      var parentId = dataItem.get("id").split("-")[0];
 
       am5.array.each(series.dataItems, function (dataItem) {
-        if (dataItem.get("id").indexOf(id) != -1) {
+        if (dataItem.get("id").startsWith(parentId)) {
           dataItem.get("link").hover();
         }
       });

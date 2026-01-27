@@ -125,7 +125,7 @@ rule gather_demultiplexed_sequencing:
     resources:
         mem_mb=1024 * 10,
     benchmark:
-        out("benchmarks/gather_demultiplexed_sequencing_{experiment_name}.txt")
+        out("benchmarks/{experiment_name}/gather_demultiplexed_sequencing.txt")
     params:
         path_demux_scatter=lambda w: out(f"{w.experiment_name}/demux_reads_scatter/")
     conda:

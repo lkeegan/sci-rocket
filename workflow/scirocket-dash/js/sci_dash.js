@@ -749,7 +749,7 @@ function generate_benchmarks_table(benchmarks) {
   if (!Array.isArray(benchmarks) || benchmarks.length === 0) {
     const row = tbody.insertRow(-1);
     const cell = row.insertCell(0);
-    cell.colSpan = 11;
+    cell.colSpan = 7;
     cell.style.textAlign = "center";
     cell.innerHTML = "<b>No benchmark data available</b>";
     return;

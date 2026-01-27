@@ -716,6 +716,88 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
+//--------------------------------------------
+// Table - Benchmarks summary (like Hashing table).
+//--------------------------------------------
+
+function generate_benchmarks_table(benchmarks) {
+  const table = document.getElementById("benchmarks-table");
+  if (!table) return;
+
+  // Give it the same behavior hooks as hashing
+  table.className = "table card-table table-vcenter text-nowrap datatable tablesorter";
+
+  // Base skeleton (same style approach as hashing)
+  table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>Time<br><sub>(seconds)</sub></th>
+          <th>Time<br><sub>(h:m:s)</sub></th>
+          <th>Max RAM<br><sub>(gb)</sub></th>
+          <th>IO Read<br><sub>(gb)</sub></th>
+          <th>IO Write<br><sub>(gb)</sub></th>
+          <th>Mean Load<br><sub>(cpus)</sub></th>
+        </tr>
+      </thead>
+      <tbody class="table-tbody"></tbody>
+    `;
+
+  const tbody = table.querySelector("tbody");
+
+  // No data case
+  if (!Array.isArray(benchmarks) || benchmarks.length === 0) {
+    const row = tbody.insertRow(-1);
+    const cell = row.insertCell(0);
+    cell.colSpan = 7;
+    cell.style.textAlign = "center";
+    cell.innerHTML = "<b>No benchmark data available</b>";
+    return;
+  }
+
+  const fmt_number = (v, digits = 1,  divide_by = 1) => {
+    if (v == null) return "N/A";
+    if (typeof v === "number") {
+      if (Number.isNaN(v)) return "N/A";
+      return (v/divide_by).toFixed(digits);
+    }
+    return String(v);
+  };
+
+  // Fill rows
+  for (const b of benchmarks) {
+    const row = tbody.insertRow(-1);
+
+    // Job name
+    row.insertCell(-1).textContent = b.job ?? "N/A";
+
+    // Time (seconds)
+    row.insertCell(-1).textContent = fmt_number(b.s, 0);
+
+    // Time (h:m:s)
+    row.insertCell(-1).textContent = b["h:m:s"] ?? "N/A";
+
+    // MB values that should be converted to GB for display
+    const fields = ["max_rss","io_in","io_out"];
+    for (const key of fields) {
+      row.insertCell(-1).textContent = fmt_number(b[key], 2, 1024);
+    }
+
+    // Load (convert percentage to cpus)
+    row.insertCell(-1).textContent = fmt_number(b.mean_load, 1, 100);
+  }
+
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  generate_benchmarks_table(data.benchmarks);
+
+  $("#benchmarks-table").tablesorter({
+    sortList: [[1, 1]],  // default: seconds descending
+  });
+});
+
+
 
 //--------------------------------------------
 // Chart - Sankey diagram of barcodes.

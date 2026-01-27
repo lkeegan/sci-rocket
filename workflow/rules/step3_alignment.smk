@@ -9,20 +9,20 @@
 
 rule trim_fastp:
     input:
-        R1="{dir_output}/{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz",
-        R2="{dir_output}/{experiment_name}/demux_reads/{sample_name}_R2.fastq.gz",
+        R1=out("{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz"),
+        R2=out("{experiment_name}/demux_reads/{sample_name}_R2.fastq.gz"),
     output:
-        R1=temp("{dir_output}/{experiment_name}/fastp/{sample_name}_R1.fastq.gz"),
-        R2=temp("{dir_output}/{experiment_name}/fastp/{sample_name}_R2.fastq.gz"),
-        html="{dir_output}/{experiment_name}/fastp/{sample_name}.html",
-        json="{dir_output}/{experiment_name}/fastp/{sample_name}.json",
+        R1=temp(out("{experiment_name}/fastp/{sample_name}_R1.fastq.gz")),
+        R2=temp(out("{experiment_name}/fastp/{sample_name}_R2.fastq.gz")),
+        html=out("{experiment_name}/fastp/{sample_name}.html"),
+        json=out("{experiment_name}/fastp/{sample_name}.json"),
     log:
-        "{dir_output}/logs/step3_alignment/fastp_{experiment_name}_{sample_name}.log",
+        out("logs/step3_alignment/fastp_{experiment_name}_{sample_name}.log"),
     threads: 10
     resources:
         mem_mb=1024 * 4,
     benchmark:
-        "{dir_output}/benchmarks/trim_fastp_{experiment_name}_{sample_name}.txt"
+        out("benchmarks/{experiment_name}/trim_fastp_{sample_name}.txt")
     params:
         extra=config["settings"]["fastp"],
     conda:
@@ -41,14 +41,14 @@ def get_expected_cells(wildcards):
 
 rule generate_index_STAR:
     output:
-        directory("{dir_output}/resources/index_star/{species}"),
+        directory(out("resources/index_star/{species}")),
     log:
-        "{dir_output}/logs/step3_alignment/generate_index_STAR_{species}.log",
+        out("logs/step3_alignment/generate_index_STAR_{species}.log"),
     threads: 20
     resources:
         mem_mb=1024 * 50,
     benchmark:
-        "{dir_output}/benchmarks/generate_index_STAR_{species}.txt"
+        out("benchmarks/generate_index_STAR_{species}.txt")
     params:
         fasta=lambda w: config["species"][w.species]["genome"],
         gtf=lambda w: config["species"][w.species]["genome_gtf"],
@@ -70,40 +70,40 @@ rule generate_index_STAR:
 
 rule starSolo_align:
     input:
-        R1="{dir_output}/{experiment_name}/fastp/{sample_name}_R1.fastq.gz",
-        R2="{dir_output}/{experiment_name}/fastp/{sample_name}_R2.fastq.gz",
-        index="{dir_output}/resources/index_star/{species}/",
-        whitelist_p7="{dir_output}/{experiment_name}/demux_reads/{experiment_name}_whitelist_p7.txt",
-        whitelist_p5="{dir_output}/{experiment_name}/demux_reads/{experiment_name}_whitelist_p5.txt",
-        whitelist_ligation="{dir_output}/{experiment_name}/demux_reads/{experiment_name}_whitelist_ligation.txt",
-        whitelist_rt="{dir_output}/{experiment_name}/demux_reads/{experiment_name}_whitelist_rt.txt",
+        R1=out("{experiment_name}/fastp/{sample_name}_R1.fastq.gz"),
+        R2=out("{experiment_name}/fastp/{sample_name}_R2.fastq.gz"),
+        index=out("resources/index_star/{species}/"),
+        whitelist_p7=out("{experiment_name}/demux_reads/{experiment_name}_whitelist_p7.txt"),
+        whitelist_p5=out("{experiment_name}/demux_reads/{experiment_name}_whitelist_p5.txt"),
+        whitelist_ligation=out("{experiment_name}/demux_reads/{experiment_name}_whitelist_ligation.txt"),
+        whitelist_rt=out("{experiment_name}/demux_reads/{experiment_name}_whitelist_rt.txt"),
     output:
-        bam="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam",
-        sj="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_SJ.out.tab",
-        log1="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Log.final.out",
-        log2=temp("{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Log.out"),
+        bam=out("{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam"),
+        sj=out("{experiment_name}/alignment/{sample_name}_{species}_SJ.out.tab"),
+        log1=out("{experiment_name}/alignment/{sample_name}_{species}_Log.final.out"),
+        log2=temp(out("{experiment_name}/alignment/{sample_name}_{species}_Log.out")),
         log3=temp(
-            "{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Log.progress.out"
+            out("{experiment_name}/alignment/{sample_name}_{species}_Log.progress.out")
         ),
         dir_tmp=temp(
-            directory("{dir_output}/{experiment_name}/alignment/{sample_name}_{species}__STARtmp/")
+            directory(out("{experiment_name}/alignment/{sample_name}_{species}__STARtmp"))
         ),
         dir_solo=directory(
-            "{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Solo.out/"
+            out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out")
         ),
-        barcodes_raw="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/raw/barcodes.tsv",
-        barcodes_raw_converted="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/raw/barcodes_converted.tsv",
-        barcodes_filtered="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/filtered/barcodes.tsv",
-        barcodes_filtered_converted="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/filtered/barcodes_converted.tsv",
+        barcodes_raw=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/raw/barcodes.tsv"),
+        barcodes_raw_converted=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/raw/barcodes_converted.tsv"),
+        barcodes_filtered=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/filtered/barcodes.tsv"),
+        barcodes_filtered_converted=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/filtered/barcodes_converted.tsv"),
     log:
-        "{dir_output}/logs/step3_alignment/star_align_{experiment_name}_{sample_name}_{species}.log",
+        out("logs/step3_alignment/star_align_{experiment_name}_{sample_name}_{species}.log"),
     threads: 30
     resources:
         mem_mb=1024 * 60,
     benchmark:
-        "{dir_output}/benchmarks/starSolo_align_{experiment_name}_{sample_name}_{species}.txt"
+        out("benchmarks/{experiment_name}/starSolo_align_{sample_name}_{species}.txt")
     params:
-        sampleName="{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_",
+        sampleName=out("{experiment_name}/alignment/{sample_name}_{species}_"),
         extra=config["settings"]["star"],
         path_barcodes=config["path_barcodes"],
         n_expected_cells=lambda w: get_expected_cells(w),
@@ -132,16 +132,16 @@ rule starSolo_align:
 
 rule sambamba_index:
     input:
-        "{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam",
+        out("{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam"),
     output:
-        "{dir_output}/{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam.bai",
+        out("{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam.bai"),
     log:
-        "{dir_output}/logs/step3_alignment/sambamba_index_{experiment_name}_{sample_name}_{species}.log",
+        out("logs/step3_alignment/sambamba_index_{experiment_name}_{sample_name}_{species}.log"),
     threads: 8
     resources:
         mem_mb=1024 * 2,
     benchmark:
-        "{dir_output}/benchmarks/sambamba_index_{experiment_name}_{sample_name}_{species}.txt"
+        out("benchmarks/{experiment_name}/sambamba_index_{sample_name}_{species}.txt")
     conda:
         "envs/sci-rocket.yaml",
     message:

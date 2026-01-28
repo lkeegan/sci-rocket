@@ -793,9 +793,9 @@ function generate_benchmarks_table(benchmarks) {
     }
 
     // Load (convert percentage to cpus)
-      const loadCell = row.insertCell(-1);
-      loadCell.style.textAlign = "right";
-      loadCell.textContent = fmt_number(b.mean_load, 1, 100);
+    const loadCell = row.insertCell(-1);
+    loadCell.style.textAlign = "right";
+    loadCell.textContent = fmt_number(b.mean_load, 1, 100);
   }
 
 }

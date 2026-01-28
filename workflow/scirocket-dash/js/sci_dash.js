@@ -734,13 +734,13 @@ function generate_benchmarks_table(benchmarks) {
   table.innerHTML = `
       <thead>
         <tr>
-          <th style="text-align:left">Job</th>
-          <th style="text-align:center">Time<br><sub>(seconds)</sub></th>
-          <th style="text-align:center">Time<br><sub>(h:m:s)</sub></th>
-          <th style="text-align:right">Max RAM<br><sub>(gb)</sub></th>
-          <th style="text-align:right">IO Read<br><sub>(gb)</sub></th>
-          <th style="text-align:right">IO Write<br><sub>(gb)</sub></th>
-          <th style="text-align:right">Mean Load<br><sub>(cpus)</sub></th>
+          <th>Job</th>
+          <th>Time<br><sub>(seconds)</sub></th>
+          <th>Time<br><sub>(h:m:s)</sub></th>
+          <th>Max RAM<br><sub>(gb)</sub></th>
+          <th>IO Read<br><sub>(gb)</sub></th>
+          <th>IO Write<br><sub>(gb)</sub></th>
+          <th>Mean Load<br><sub>(cpus)</sub></th>
         </tr>
       </thead>
       <tbody class="table-tbody"></tbody>
@@ -748,7 +748,7 @@ function generate_benchmarks_table(benchmarks) {
 
   const tbody = table.querySelector("tbody");
 
-  // No data case (keep it clean)
+  // No data case
   if (!Array.isArray(benchmarks) || benchmarks.length === 0) {
     const row = tbody.insertRow(-1);
     const cell = row.insertCell(0);
@@ -775,27 +775,19 @@ function generate_benchmarks_table(benchmarks) {
     row.insertCell(-1).textContent = b.job ?? "N/A";
 
     // Time (seconds)
-    const sCell = row.insertCell(-1);
-    sCell.style.textAlign = "right";
-    sCell.textContent = fmt_number(b.s, 0);
+    row.insertCell(-1).textContent = fmt_number(b.s, 0);
 
     // Time (h:m:s)
-    const hmsCell = row.insertCell(-1);
-    hmsCell.style.textAlign = "right";
-    hmsCell.textContent = b["h:m:s"] ?? "N/A";
+    row.insertCell(-1).textContent = b["h:m:s"] ?? "N/A";
 
     // MB values that should be converted to GB for display
     const fields = ["max_rss","io_in","io_out"];
     for (const key of fields) {
-      const c = row.insertCell(-1);
-      c.style.textAlign = "right";
-      c.textContent = fmt_number(b[key], 2, 1024);
+      row.insertCell(-1).textContent = fmt_number(b[key], 2, 1024);
     }
 
     // Load (convert percentage to cpus)
-    const loadCell = row.insertCell(-1);
-    loadCell.style.textAlign = "right";
-    loadCell.textContent = fmt_number(b.mean_load, 1, 100);
+    row.insertCell(-1).textContent = fmt_number(b.mean_load, 1, 100);
   }
 
 }

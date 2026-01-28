@@ -252,7 +252,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }),
       datasets: [
         {
-          label: "No. of successfull pairs",
+          label: "No. of successful pairs",
           data: sample_n_pairs_success.map(function (d) {
             return d.frequency;
           }),

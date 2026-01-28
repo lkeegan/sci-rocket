@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 //--------------------------------------------
-// Chart - No. of successfull pairs per sample.
+// Chart - No. of successful pairs per sample.
 //--------------------------------------------
 
 var sample_n_pairs_success = [];

@@ -286,7 +286,6 @@ def open_file_handlers(samples: pd.DataFrame, experiment_name: str, path_r1: str
         path_r2 (str): Path to R2 fastq file.
         path_out (str): Path to output directory.
         log (logging.Logger): Logger.
-
     Returns:
         dict_fh (dict): Dictionary of file handlers.
     """
@@ -311,9 +310,6 @@ def open_file_handlers(samples: pd.DataFrame, experiment_name: str, path_r1: str
         dict_fh["r2_discarded"] = gzip.open(path_r2_discarded, "wt", compresslevel=2)
         dict_fh["discarded_log"] = gzip.open(path_log_discarded, "wt", compresslevel=2)
 
-        # Header of discard log.
-        dict_fh["discarded_log"].write("read_name\tp5\tp7\tligation\trt\tumi\tsample_name\n")
-
     except OSError:
         log.error(
             "Could not generate experiment-based discard files: Please check the paths:\n(R1 discarded) %s\n(R2 discarded) %s\n(log discarded) %s",
@@ -324,7 +320,8 @@ def open_file_handlers(samples: pd.DataFrame, experiment_name: str, path_r1: str
         sys.exit(1)
 
     # Sample-specific R1 / R2 output.
-    for sample in set(samples.sample_name):
+    output_sample_names = sorted(samples["sample_name"].unique().tolist())
+    for sample in output_sample_names:
         # Initialize the sample dictionary.
         dict_fh[sample] = {}
 
@@ -379,7 +376,15 @@ def retrieve_hashing_sheets(samples: pd.DataFrame):
     return hashing
 
 
-def sciseq_sample_demultiplexing(log: logging.Logger, experiment_name: str, samples: pd.DataFrame, barcodes: pd.DataFrame, path_r1: str, path_r2: str, path_out: str):
+def sciseq_sample_demultiplexing(
+    log: logging.Logger,
+    experiment_name: str,
+    samples: pd.DataFrame,
+    barcodes: pd.DataFrame,
+    path_r1: str,
+    path_r2: str,
+    path_out: str,
+):
     """
     Performs demultiplexing of the raw fastq files based on the PCR indexes (p5, p7) and RT barcode to produce sample-specific R1 and R2 files.
     The ligation barcode can be either 9nt or 10nt long and this can affect the location of the UMI and RT barcodes.
@@ -394,35 +399,37 @@ def sciseq_sample_demultiplexing(log: logging.Logger, experiment_name: str, samp
     Parameters:
         log (logging.Logger): Logger.
         experiment_name (str): Experiment name.
-        samples (pd.DataFrame): Sample sheet of the samples in the experiment.
+        samples (pd.DataFrame): Sample sheet.
         barcodes (pd.DataFrame): Barcode sheet.
         path_r1 (str): Path to R1 fastq file.
         path_r2 (str): Path to R2 fastq file.
         path_out (str): Path to output directory.
-
     Returns:
         None
     """
 
     log.info("Starting sample-based demultiplexing of %s:\n(R1) %s\n(R2) %s", experiment_name, path_r1, path_r2)
 
+    # Subset samples used for matching and QC in this experiment.
+    samples_exp = samples.query("experiment_name == @experiment_name")
+
     # Open the IO handlers.
     dict_fh = open_file_handlers(samples, experiment_name, path_r1, path_r2, path_out, log)
 
     # Generate the barcode dictionaries.
-    dict_barcodes = init_barcode_dict(barcodes, samples, experiment_name)
+    dict_barcodes = init_barcode_dict(barcodes, samples_exp, experiment_name)
 
     # Generate the sample dictionary.
-    dict_samples = generate_sample_dict(samples, barcodes)
+    dict_samples = generate_sample_dict(samples_exp, barcodes)
 
     # Import hashing information (if applicable)
-    dict_hashing = retrieve_hashing_sheets(samples)
+    dict_hashing = retrieve_hashing_sheets(samples_exp)
 
     if dict_hashing:
         log.info("Hashing sample(s) detected in this experiment, hashing subroutines are enabled for these samples. After counting, hash-reads are discarded.")
 
     # Initialize the QC dictionary.
-    qc = init_qc(experiment_name, dict_barcodes, samples, dict_hashing)
+    qc = init_qc(experiment_name, dict_barcodes, samples_exp, dict_hashing)
 
     # Iterate over the read-pairs and search for the barcodes within R1.
     # If any barcode is not found, try to rescue a respective barcode sequence with 1bp mismatch.
@@ -606,7 +613,6 @@ def main(arguments):
     parser.add_argument("--samples", required=True, type=str, help="(str) Path to sample-sheet.")
     parser.add_argument("--barcodes", required=True, type=str, help="(str) Path to barcodes file.")
     parser.add_argument("--out", required=True, type=str, help="(str) Path to output directory.")
-
     parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="Display help and exit.")
     parser.add_argument("-v", "--version", action="version", version=__version__, help="Display version and exit.")
 
@@ -618,7 +624,6 @@ def main(arguments):
 
     # Open sample-sheet.
     samples = pd.read_csv(args.samples, sep="\t", dtype=str)
-    samples = samples.query("experiment_name == @args.experiment_name")
 
     # Open barcode-sheet.
     barcodes = pd.read_csv(args.barcodes, sep="\t", dtype=str)
@@ -628,7 +633,15 @@ def main(arguments):
         os.makedirs(args.out)
 
     # Run the program.
-    sciseq_sample_demultiplexing(log=log, experiment_name=args.experiment_name, samples=samples, barcodes=barcodes, path_r1=args.r1, path_r2=args.r2, path_out=args.out)
+    sciseq_sample_demultiplexing(
+        log=log,
+        experiment_name=args.experiment_name,
+        samples=samples,
+        barcodes=barcodes,
+        path_r1=args.r1,
+        path_r2=args.r2,
+        path_out=args.out,
+    )
 
 
 if __name__ == "__main__":

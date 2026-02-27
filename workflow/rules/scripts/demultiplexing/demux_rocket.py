@@ -171,8 +171,11 @@ def init_qc(experiment_name: str, dict_barcodes: dict, samples: pd.DataFrame, di
         for hashing_sample in dict_hashing:
             # Total number of read-pairs with correct(ed) hashing barcode.
             # For all (succesfull) reads, keep track of the number of times each hashing/UMI combination is seen per cellular barcode.
-            # The counts contain the number of times a hashing barcode is seen per cell + distinct UMI's per cell.
-            # qc["hashing"][hashing_sample]["counts"][hashing_name][cellular_sequence] = {"umi": set(), "count": 0}
+            # The counts contain:
+            # - number of times a hashing barcode is seen per cell,
+            # - distinct UMI's per cell,
+            # - barcode label representation (p7_p5_ligation_rt).
+            # qc["hashing"][hashing_sample]["counts"][hashing_name][cellular_sequence] = {"umi": set(), "count": 0, "cell_barcode_label": str}
             qc["hashing"][hashing_sample] = {k: {"n_correct": 0, "n_corrected": 0, "n_correct_upstream": 0, "counts": {}} for k in dict_hashing[hashing_sample]["sheet"].values()}
 
     # Return the QC dictionary.
@@ -230,11 +233,14 @@ def update_qc(qc:dict, x:sciRecord):
         # Update hashing metrics (if applicable and if found).
         if x.hashing_name:
             qc["n_hashing"] += 1
+            cell_barcode_label = f"{x.p7_name}_{x.p5_name}_{x.ligation_name}_{x.rt_name}"
             if x.cellular_sequence not in qc["hashing"][x.sample_name][x.hashing_name]["counts"]:
-                qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence] = {"umi": set([x.umi_sequence]), "count": 1}
+                qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence] = {"umi": set([x.umi_sequence]), "count": 1, "cell_barcode_label": cell_barcode_label}
             else:
                 qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]["umi"].add(x.umi_sequence)
                 qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]["count"] += 1
+                if "cell_barcode_label" not in qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]:
+                    qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]["cell_barcode_label"] = cell_barcode_label
 
             # Update the number of correct/corrected/upstream hashing barcodes.
             qc["hashing"][x.sample_name][x.hashing_name]["n_correct"] += 1 if x.hashing_status == "Correct" else 0

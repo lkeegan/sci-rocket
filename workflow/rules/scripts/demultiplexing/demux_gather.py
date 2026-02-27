@@ -40,6 +40,9 @@ def combine_pickle(pickle_dict, combined_dict):
                             else:
                                 combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"].update(pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["umi"])
                                 combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"] += pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["count"]
+                                if "cell_barcode_label" not in combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]:
+                                    if "cell_barcode_label" in pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]:
+                                        combined_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["cell_barcode_label"] = pickle_dict["hashing"][sample_name][hashing_name]["counts"][cellular_sequence]["cell_barcode_label"]
                                     
         elif key == "sample_success":
             for sample in pickle_dict["sample_success"]:

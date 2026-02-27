@@ -37,22 +37,43 @@ def write_cell_hashing_table(qc, out):
     # Create a list of dictionaries.
     array_hashing = []
     
+    def format_cell_barcode(cellular_barcode: str) -> str:
+        # Cellular barcodes are stored internally as a 40nt concatenation:
+        # p7(10nt) + p5(10nt) + ligation(10nt) + rt(10nt).
+        # Export them as underscore-delimited components for readability.
+        if cellular_barcode.count("_") == 3:
+            return cellular_barcode
+
+        if len(cellular_barcode) == 40:
+            return "_".join(
+                (
+                    cellular_barcode[0:10],
+                    cellular_barcode[10:20],
+                    cellular_barcode[20:30],
+                    cellular_barcode[30:40],
+                )
+            )
+
+        return cellular_barcode
+
     for sample_name in qc["hashing"]:
         for hashing_name in qc["hashing"][sample_name]:
             for cellular_barcode in qc["hashing"][sample_name][hashing_name]["counts"]:
+                cell_metrics = qc["hashing"][sample_name][hashing_name]["counts"][cellular_barcode]
                 array_hashing.append(
                     {
                         "experiment_name": qc["experiment_name"],
                         "sample_name": sample_name,
                         "hashing_name": hashing_name,
-                        "cell_barcode": cellular_barcode,
-                        "count": qc["hashing"][sample_name][hashing_name]["counts"][cellular_barcode]["count"],
-                        "n_umi": len(qc["hashing"][sample_name][hashing_name]["counts"][cellular_barcode]["umi"])
+                        "cell_barcode": format_cell_barcode(cellular_barcode),
+                        "cell_barcode_label": cell_metrics.get("cell_barcode_label", ""),
+                        "count": cell_metrics["count"],
+                        "n_umi": len(cell_metrics["umi"])
                     }
                 )
 
     # Convert to pandas dataframe.
-    df_hashing = pd.DataFrame(columns=["experiment_name", "sample_name", "hashing_name", "cell_barcode", "count", "n_umi"], data=array_hashing)
+    df_hashing = pd.DataFrame(columns=["experiment_name", "sample_name", "hashing_name", "cell_barcode", "cell_barcode_label", "count", "n_umi"], data=array_hashing)
 
     # Order on total hash count (and by cell_barcode for equal counts).
     df_hashing = df_hashing.sort_values(by=["count", "cell_barcode"], ascending=False)

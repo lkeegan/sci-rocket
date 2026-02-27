@@ -18,8 +18,8 @@ def test_hashing_metrics():
     data = read_tsv(hashing_metrics)
     assert len(data) == 176
     # check top five
-    assert data[0] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_D7', 'TTGATTGGCGGGCCGTCAACAATTCTAGGTTTAATTGAAT', '22', '22']
-    assert data[1] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A8', 'CTAGCCAGCCCTTAATCTTGCGTCTTCCTGTATCATGATC', '17', '17']
-    assert data[2] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A7', 'TTGGCAAGCCGGTCTCGCCGATGGTTGGTGACTATAGGTT', '15', '15']
-    assert data[3] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_B7', 'GCATATGAGCCTCCTGGACCTGATGCGATGGTTACGCAAG', '15', '15']
-    assert data[4] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_C7', 'TGCGACCTCTGGTCTCGCCGTGGATTCTATGAGCATATGG', '14', '14']
+    assert data[0] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_D7', 'TTGATTGGCG_GGCCGTCAAC_AATTCTAGGT_TTAATTGAAT', 'D02_A03_LIG114_P02-B05', '22', '22']
+    assert data[1] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A8', 'CTAGCCAGCC_CTTAATCTTG_CGTCTTCCTG_TATCATGATC', 'D05_G03_LIG185_P02-D04', '17', '17']
+    assert data[2] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_A7', 'TTGGCAAGCC_GGTCTCGCCG_ATGGTTGGTG_ACTATAGGTT', 'D01_D03_LIG72_P02-E05', '15', '15']
+    assert data[3] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_B7', 'GCATATGAGC_CTCCTGGACC_TGATGCGATG_GTTACGCAAG', 'D03_F03_LIG93_P02-F05', '15', '15']
+    assert data[4] == ['Drer.ZAe', 'ZAe-14hpf-28', '10uM_P7_C7', 'TGCGACCTCT_GGTCTCGCCG_TGGATTCTAT_GAGCATATGG', 'D06_D03_LIG12_P02-D05', '14', '14']

@@ -3,16 +3,16 @@ import json
 import pytest
 
 
-def load_scidash_data(run_type: str) -> dict:
-    data_path = Path(__file__).parent.parent.parent / f"test_{run_type}" / "output" / "Drer.ZAe" / "sci-dash" / "js" / "qc_data.js"
+def load_scidash_data(experiment: str) -> dict:
+    data_path = Path(__file__).parent.parent / "output" / experiment / "sci-dash" / "js" / "qc_data.js"
     assert data_path.exists()
     with open(data_path, "r") as f:
         json_data = f.read().split("var data = ")[1]
         return json.loads(json_data)
 
 
+@pytest.mark.parametrize("experiment", ["fastq_from_aviti_one_run", "fastq_from_aviti_two_runs"])
 @pytest.mark.parametrize("field", [
-    "experiment_name",
     "n_pairs",
     "n_pairs_success",
     "n_pairs_failure",
@@ -36,8 +36,7 @@ def load_scidash_data(run_type: str) -> dict:
     "hashing",
 ]
 )
-def test_output_consistent_between_one_run_and_two_runs(field: str):
-    """This test requires that the ci/test_fastq_from_aviti_one_run and ci/test_fastq_from_aviti_two_runs workflows have been run."""
+def test_output_consistent_between_experiments(experiment: str, field: str):
     one_run_data = load_scidash_data("fastq_from_aviti_one_run")
-    two_runs_data = load_scidash_data("fastq_from_aviti_two_runs")
-    assert one_run_data[field] == two_runs_data[field]
+    experiment_data = load_scidash_data(experiment)
+    assert one_run_data[field] == experiment_data[field]

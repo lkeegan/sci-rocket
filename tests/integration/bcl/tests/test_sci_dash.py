@@ -2,12 +2,12 @@ import json
 from pathlib import Path
 
 def test_sci_dash_data():
-    data_path = Path(__file__).parent.parent / "output" / "zfish" / "sci-dash" / "js" / "qc_data.js"
+    data_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "sci-dash" / "js" / "qc_data.js"
     assert data_path.exists()
     with open(data_path, "r") as f:
         json_data = f.read().split("var data = ")[1]
         data = json.loads(json_data)
-    assert data["experiment_name"] == "zfish"
+    assert data["experiment_name"] == "bcl_one_run"
     assert data["n_pairs"] == 100000
     assert data["n_pairs_success"] == 64044
     assert data["n_pairs_failure"] == 35956

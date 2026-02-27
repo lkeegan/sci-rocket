@@ -8,7 +8,7 @@ import pytest
 
 @pytest.mark.parametrize("sample", ["zfish-hash"])
 def test_demux_output_files_exist(sample: str):
-    demux_path = Path(__file__).parent.parent / "output" / "zfish" / "demux_reads"
+    demux_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "demux_reads"
     assert demux_path.exists()
     assert (demux_path / f"{sample}_R1.fastq.gz").exists()
     assert (demux_path / f"{sample}_R2.fastq.gz").exists()
@@ -58,13 +58,13 @@ def _iter_fastq_sequences(path: Path):
 
 def test_demux_whitelists_subset_of_configured_barcodes():
     test_root = Path(__file__).parent.parent
-    demux_path = test_root / "output" / "zfish" / "demux_reads"
+    demux_path = test_root / "output" / "bcl_one_run" / "demux_reads"
     barcodes_path = test_root.parent / "barcodes_bcl.tsv"
 
-    whitelist_p5 = _read_whitelist(demux_path / "zfish_whitelist_p5.txt")
-    whitelist_p7 = _read_whitelist(demux_path / "zfish_whitelist_p7.txt")
-    whitelist_ligation = _read_whitelist(demux_path / "zfish_whitelist_ligation.txt")
-    whitelist_rt = _read_whitelist(demux_path / "zfish_whitelist_rt.txt")
+    whitelist_p5 = _read_whitelist(demux_path / "bcl_one_run_whitelist_p5.txt")
+    whitelist_p7 = _read_whitelist(demux_path / "bcl_one_run_whitelist_p7.txt")
+    whitelist_ligation = _read_whitelist(demux_path / "bcl_one_run_whitelist_ligation.txt")
+    whitelist_rt = _read_whitelist(demux_path / "bcl_one_run_whitelist_rt.txt")
 
     barcodes_p5 = _read_barcodes(barcodes_path, "p5")
     barcodes_p7 = _read_barcodes(barcodes_path, "p7")
@@ -104,10 +104,10 @@ def test_demux_whitelists_subset_of_configured_barcodes():
 
 
 def test_discarded_logs_consistent_with_discarded_fastqs():
-    demux_path = Path(__file__).parent.parent / "output" / "zfish" / "demux_reads"
-    path_log = demux_path / "log_zfish_discarded_reads.tsv.gz"
-    path_r1 = demux_path / "zfish_R1_discarded.fastq.gz"
-    path_r2 = demux_path / "zfish_R2_discarded.fastq.gz"
+    demux_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "demux_reads"
+    path_log = demux_path / "log_bcl_one_run_discarded_reads.tsv.gz"
+    path_r1 = demux_path / "bcl_one_run_R1_discarded.fastq.gz"
+    path_r2 = demux_path / "bcl_one_run_R2_discarded.fastq.gz"
 
     assert path_log.exists()
     assert path_r1.exists()
@@ -136,10 +136,10 @@ def test_discarded_logs_consistent_with_discarded_fastqs():
 
 
 def test_discarded_log_read_names_match_discarded_fastqs():
-    demux_path = Path(__file__).parent.parent / "output" / "zfish" / "demux_reads"
-    path_log = demux_path / "log_zfish_discarded_reads.tsv.gz"
-    path_r1 = demux_path / "zfish_R1_discarded.fastq.gz"
-    path_r2 = demux_path / "zfish_R2_discarded.fastq.gz"
+    demux_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "demux_reads"
+    path_log = demux_path / "log_bcl_one_run_discarded_reads.tsv.gz"
+    path_r1 = demux_path / "bcl_one_run_R1_discarded.fastq.gz"
+    path_r2 = demux_path / "bcl_one_run_R2_discarded.fastq.gz"
 
     assert path_log.exists()
     assert path_r1.exists()
@@ -154,7 +154,7 @@ def test_discarded_log_read_names_match_discarded_fastqs():
 
 def test_sample_fastqs_have_paired_reads_and_r1_length_48nt():
     test_root = Path(__file__).parent.parent
-    demux_path = test_root / "output" / "zfish" / "demux_reads"
+    demux_path = test_root / "output" / "bcl_one_run" / "demux_reads"
     samplesheet_path = test_root / "samplesheet.tsv"
 
     with open(samplesheet_path, "r", encoding="utf-8", newline="") as handle:
@@ -173,11 +173,11 @@ def test_sample_fastqs_have_paired_reads_and_r1_length_48nt():
 
 
 def test_qc_pickle_consistent_with_demux_outputs():
-    demux_path = Path(__file__).parent.parent / "output" / "zfish" / "demux_reads"
-    path_qc = demux_path / "zfish_qc.pickle"
-    path_log = demux_path / "log_zfish_discarded_reads.tsv.gz"
-    path_discard_r1 = demux_path / "zfish_R1_discarded.fastq.gz"
-    path_discard_r2 = demux_path / "zfish_R2_discarded.fastq.gz"
+    demux_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "demux_reads"
+    path_qc = demux_path / "bcl_one_run_qc.pickle"
+    path_log = demux_path / "log_bcl_one_run_discarded_reads.tsv.gz"
+    path_discard_r1 = demux_path / "bcl_one_run_R1_discarded.fastq.gz"
+    path_discard_r2 = demux_path / "bcl_one_run_R2_discarded.fastq.gz"
     path_sample_r1 = demux_path / "zfish-hash_R1.fastq.gz"
     path_sample_r2 = demux_path / "zfish-hash_R2.fastq.gz"
 
@@ -198,7 +198,7 @@ def test_qc_pickle_consistent_with_demux_outputs():
     n_sample_r1 = _count_fastq_reads(path_sample_r1)
     n_sample_r2 = _count_fastq_reads(path_sample_r2)
 
-    assert qc["experiment_name"] == "zfish"
+    assert qc["experiment_name"] == "bcl_one_run"
     assert qc["n_pairs_success"] + qc["n_pairs_failure"] == qc["n_pairs"]
 
     assert n_discard_log_rows == n_discard_r1 == n_discard_r2 == qc["n_pairs_failure"]
@@ -210,9 +210,9 @@ def test_qc_pickle_consistent_with_demux_outputs():
 
 def test_qc_pickle_covers_all_samples_from_samplesheet():
     test_root = Path(__file__).parent.parent
-    demux_path = test_root / "output" / "zfish" / "demux_reads"
+    demux_path = test_root / "output" / "bcl_one_run" / "demux_reads"
     samplesheet_path = test_root / "samplesheet.tsv"
-    path_qc = demux_path / "zfish_qc.pickle"
+    path_qc = demux_path / "bcl_one_run_qc.pickle"
 
     assert path_qc.exists()
 

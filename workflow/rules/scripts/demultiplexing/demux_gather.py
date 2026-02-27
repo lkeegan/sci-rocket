@@ -121,7 +121,6 @@ def combine_scattered(path_demux_scatter, path_out):
     # Combined pickles.
     pickle.dump(qc, open(path_out, "wb"))
 
-
 def main(arguments):
     # Setup argument parser.
     parser = argparse.ArgumentParser(description="Combine the scattered pickles into a single pickle.", add_help=False)

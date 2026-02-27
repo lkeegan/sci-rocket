@@ -239,8 +239,6 @@ def update_qc(qc:dict, x:sciRecord):
             else:
                 qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]["umi"].add(x.umi_sequence)
                 qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]["count"] += 1
-                if "cell_barcode_label" not in qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]:
-                    qc["hashing"][x.sample_name][x.hashing_name]["counts"][x.cellular_sequence]["cell_barcode_label"] = cell_barcode_label
 
             # Update the number of correct/corrected/upstream hashing barcodes.
             qc["hashing"][x.sample_name][x.hashing_name]["n_correct"] += 1 if x.hashing_status == "Correct" else 0

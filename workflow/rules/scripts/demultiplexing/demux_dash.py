@@ -41,9 +41,6 @@ def write_cell_hashing_table(qc, out):
         # Cellular barcodes are stored internally as a 40nt concatenation:
         # p7(10nt) + p5(10nt) + ligation(10nt) + rt(10nt).
         # Export them as underscore-delimited components for readability.
-        if cellular_barcode.count("_") == 3:
-            return cellular_barcode
-
         if len(cellular_barcode) == 40:
             return "_".join(
                 (

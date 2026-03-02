@@ -215,8 +215,14 @@ def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
         # Sort by descending value, and sort equal values by key to ensure the ordering is deterministic.
         qc_json["top_uncorrectables"] = {}
         top_n = 15
+        # p5 barcodes are stored RC'd (as they appear in the fastq read header).
+        # RC them back to match the orientation of the user-provided input barcodes.
+        _rc = str.maketrans("ATCG", "TAGC")
         for key in ["p5", "p7", "ligation", "rt"]:
-            sorted_by_key = sorted(qc[f"uncorrectable_{key}"].items(), key=lambda item: (-item[1], item[0]))
+            barcodes = dict(qc[f"uncorrectable_{key}"])
+            if key == "p5":
+                barcodes = {seq[::-1].translate(_rc): count for seq, count in barcodes.items()}
+            sorted_by_key = sorted(barcodes.items(), key=lambda item: (-item[1], item[0]))
             sorted_by_key_and_value = sorted(sorted_by_key, key=lambda x: x[1], reverse=True)[:top_n]
             qc_json["top_uncorrectables"][key] = [{"barcode": k, "frequency": v} for k, v in sorted_by_key_and_value]
 

@@ -27,6 +27,6 @@ def test_sci_dash_data():
     assert "zfish-hash" in data["hashing"]
     assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_correct"] == 15
     assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_corrected"] == 0
-    assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_correct_upstream"] == 0
+    assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_correct_upstream"] == 3
 
     assert data["rt_barcode_counts"]["P01"][0] == {'row': 'B', 'col': '1', 'frequency': 2048}

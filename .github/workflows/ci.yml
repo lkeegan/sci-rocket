@@ -7,7 +7,7 @@ on:
     branches: [ main, dev ]
 
 jobs:
-  test:
+  test_bcl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -18,49 +18,34 @@ jobs:
       - name: Unit tests
         run: pytest tests/unit -vvv
       - name: Download test data
-        run: mkdir -p tests/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.09/test-data.tgz | tar -xvzf - -C tests/data
-      - name: Run workflow test_bcl_one_run
+        run: mkdir -p tests/integration/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.09/test-data.tgz | tar -xvzf - -C tests/integration/data
+      - name: Run BCL workflow integration tests
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: 'tests/test_bcl_one_run'
+          directory: 'tests/integration/bcl'
           snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/test_bcl_one_run/config.yaml'
-      - run: pytest tests/test_bcl_one_run -vvv
-      - name: Run workflow test_bcl_two_runs
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/integration/bcl/config.yaml'
+      - run: pytest tests/integration/bcl -vvv
+
+  test_aviti:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install pytest pandas
+      - name: Unit tests
+        run: pytest tests/unit -vvv
+      - name: Download test data
+        run: mkdir -p tests/integration/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.09/test-data.tgz | tar -xvzf - -C tests/integration/data
+      - name: Run AVITI workflow integration tests
         uses: snakemake/snakemake-github-action@v2
         with:
-          directory: 'tests/test_bcl_two_runs'
+          directory: 'tests/integration/aviti'
           snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/test_bcl_two_runs/config.yaml'
-      - run: pytest tests/test_bcl_two_runs -vvv
-      - name: Run workflow test_fastq_from_bcl_one_run
-        uses: snakemake/snakemake-github-action@v2
-        with:
-          directory: 'tests/test_fastq_from_bcl_one_run'
-          snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/test_fastq_from_bcl_one_run/config.yaml'
-      - run: pytest tests/test_fastq_from_bcl_one_run -vvv
-      - name: Run workflow test_fastq_from_bcl_two_runs
-        uses: snakemake/snakemake-github-action@v2
-        with:
-          directory: 'tests/test_fastq_from_bcl_two_runs'
-          snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/test_fastq_from_bcl_two_runs/config.yaml'
-      - run: pytest tests/test_fastq_from_bcl_two_runs -vvv
-      - name: Run workflow test_fastq_from_aviti_one_run
-        uses: snakemake/snakemake-github-action@v2
-        with:
-          directory: 'tests/test_fastq_from_aviti_one_run'
-          snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/test_fastq_from_aviti_one_run/config.yaml'
-      - run: pytest tests/test_fastq_from_aviti_one_run -vvv
-      - name: Run workflow test_fastq_from_aviti_two_runs
-        uses: snakemake/snakemake-github-action@v2
-        with:
-          directory: 'tests/test_fastq_from_aviti_two_runs'
-          snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/test_fastq_from_aviti_two_runs/config.yaml'
-      - run: pytest tests/test_fastq_from_aviti_two_runs -vvv
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/integration/aviti/config.yaml'
+      - run: pytest tests/integration/aviti -vvv
 
   docs:
     permissions:

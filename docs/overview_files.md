@@ -1,6 +1,6 @@
 # Sample-sheet and barcodes
 
-See [example sample-sheet](https://github.com/odomlab2/sci-rocket/blob/main/workflow/examples/example_samplesheet.tsv).
+See [example sample-sheet](https://github.com/lauren-saunders-lab/sci-rocket/blob/main/workflow/examples/example_samplesheet.tsv).
 
 **sci-rocket** requires a sample sheet (.tsv) with the following required columns:
 

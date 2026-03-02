@@ -1,6 +1,6 @@
 site_name: sci-rocket
-repo_url: https://github.com/odomlab2/sci-rocket
-repo_name: odomlab2/sci-rocket
+repo_url: https://github.com/lauren-saunders-lab/sci-rocket
+repo_name: lauren-saunders-lab/sci-rocket
 theme:
   name: material
   logo: assets/logo.svg

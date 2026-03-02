@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# A script to run all CI integration test workflows locally
+# A script to run the CI integration test workflows locally
 
 set -ex
 
@@ -17,8 +17,8 @@ if [ ! -d "data" ]; then
 fi
 
 # run each test workflow and its associated pytest tests
-for test_dir in bcl aviti; do
-    # Keep cached resources (e.g. STAR index) to avoid rebuilding every run.
+for test_dir in bcl aviti velocity; do
+    # remove any old output, except cached resources (e.g. STAR index) to avoid rebuilding every run.
     if [ -d "$test_dir/output" ]; then
         find "$test_dir/output" -mindepth 1 -maxdepth 1 ! -name "resources" -exec rm -rf {} +
     fi

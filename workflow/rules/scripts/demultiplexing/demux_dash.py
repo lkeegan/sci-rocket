@@ -1,11 +1,106 @@
 import argparse
-import glob
 import json
 import os
 import pandas as pd
 import pickle
 import sys
 import pathlib
+
+
+def parse_float(value):
+    return float(value.strip())
+
+
+def parse_int(value):
+    return int(float(value.strip()))
+
+
+def parse_summary_metrics(path_summary):
+    """
+    Extract sample-wise STARsolo summary statistics from Summary.csv.
+    """
+
+    stats = {}
+    with open(path_summary, "r") as handle:
+        for line in handle:
+            split_line = line.split(",", 1)
+            if len(split_line) != 2:
+                continue
+
+            key, value = split_line[0], split_line[1].strip()
+            if key == "Number of Reads":
+                stats["total_reads"] = parse_int(value)
+            elif key == "Sequencing Saturation":
+                stats["sequencing_saturation"] = parse_float(value)
+            elif key == "Reads Mapped to Genome: Unique+Multiple":
+                stats["perc_mapped_reads_genome"] = parse_float(value)
+            elif key == "Reads Mapped to Genome: Unique":
+                stats["perc_unique_reads_genome_unique"] = parse_float(value)
+            elif key == "Estimated Number of Cells":
+                stats["estimated_cells"] = parse_int(value)
+            elif key == "Mean Reads per Cell":
+                stats["mean_reads_per_cell"] = parse_int(value)
+            elif key == "Mean UMI per Cell":
+                stats["mean_umi_per_cell"] = parse_int(value)
+            elif (
+                key.startswith("Reads Mapped to ")
+                and "Genome" not in key
+                and ": Unique+Multiple " in key
+            ):
+                stats["perc_mapped_reads_gene"] = parse_float(value)
+            elif (
+                key.startswith("Reads Mapped to ")
+                and "Genome" not in key
+                and ": Unique " in key
+            ):
+                stats["perc_unique_reads_gene_unique"] = parse_float(value)
+            elif (
+                key.startswith("Mean ")
+                and key.endswith(" per Cell")
+                and key not in {"Mean Reads per Cell", "Mean UMI per Cell"}
+            ):
+                stats["mean_genes_per_cell"] = parse_int(value)
+    return stats
+
+
+def resolve_solo_feature_paths(path_star, sample):
+    """
+    Resolve STARSolo summary and count files for one sample with feature fallback.
+    """
+
+    solo_dirs = sorted(pathlib.Path(path_star).glob(f"{sample}_*_Solo.out"))
+    if not solo_dirs:
+        raise FileNotFoundError(
+            f"No STARSolo output directory found for sample '{sample}' in {path_star}"
+        )
+
+    solo_dir = solo_dirs[0]
+    candidate_features = []
+    for feature in ["GeneFull_Ex50pAS", "GeneFull_ExonOverIntron", "GeneFull", "Gene"]:
+        if feature and feature not in candidate_features:
+            candidate_features.append(feature)
+
+    for summary in sorted(solo_dir.glob("*/Summary.csv")):
+        feature = summary.parent.name
+        if feature not in candidate_features:
+            candidate_features.append(feature)
+
+    for feature in candidate_features:
+        feature_dir = solo_dir / feature
+        summary = feature_dir / "Summary.csv"
+        cellreads = feature_dir / "CellReads.stats"
+        filtered_barcodes = feature_dir / "filtered" / "barcodes.tsv"
+        if summary.exists() and cellreads.exists() and filtered_barcodes.exists():
+            return {
+                "feature": feature,
+                "summary": summary,
+                "cellreads": cellreads,
+                "filtered_barcodes": filtered_barcodes,
+            }
+
+    raise FileNotFoundError(
+        f"Could not resolve STARSolo Summary.csv, CellReads.stats and filtered/barcodes.tsv for sample '{sample}' in {solo_dir}"
+    )
 
 
 def get_benchmarks(path_benchmarks) -> list[dict]:
@@ -254,45 +349,21 @@ def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
 
     # region Import STAR statistics. -------------------------------------------------------------------------------------
 
-    # Per sample, load the STAR Log.final.out and STARSolo GeneFull summaries.
+    # Per sample, load STARSolo summary and per-cell read stats.
     qc_json["sample_success"] = qc["sample_success"]
     for sample in qc_json["sample_success"]:
-
-        # Find the STARsolo GeneFull summary that matches the sample name.
-        path_solo = glob.glob(path_star + sample + "_*_Solo.out/GeneFull_Ex50pAS/Summary.csv", recursive=True)
-
-        # Load the STARsolo GeneFull summary file and extract several statistics.
-        with open(path_solo[0], "r") as handle:
-            for line in handle:
-                line = line.split(",")
-                if line[0] == "Number of Reads":
-                    qc_json["sample_success"][sample]["total_reads"] = int(line[1].strip())
-                elif line[0] == "Sequencing Saturation":
-                    qc_json["sample_success"][sample]["sequencing_saturation"] = float(line[1].strip())
-                elif line[0] == "Reads Mapped to Genome: Unique+Multiple":
-                    qc_json["sample_success"][sample]["perc_mapped_reads_genome"] = float(line[1].strip())
-                elif line[0] == "Reads Mapped to Genome: Unique":
-                    qc_json["sample_success"][sample]["perc_unique_reads_genome_unique"] = float(line[1].strip())
-                elif line[0] == "Reads Mapped to GeneFull_Ex50pAS: Unique+Multiple GeneFull_Ex50pAS":
-                    qc_json["sample_success"][sample]["perc_mapped_reads_gene"] = float(line[1].strip())
-                elif line[0] == "Reads Mapped to GeneFull_Ex50pAS: Unique GeneFull_Ex50pAS":
-                    qc_json["sample_success"][sample]["perc_unique_reads_gene_unique"] = float(line[1].strip())
-                elif line[0] == "Estimated Number of Cells":
-                    qc_json["sample_success"][sample]["estimated_cells"] = int(line[1].strip())
-                elif line[0] == "Mean Reads per Cell":
-                    qc_json["sample_success"][sample]["mean_reads_per_cell"] = int(line[1].strip())
-                elif line[0] == "Mean UMI per Cell":
-                    qc_json["sample_success"][sample]["mean_umi_per_cell"] = int(line[1].strip())
-                elif line[0] == "Mean GeneFull_Ex50pAS per Cell":
-                    qc_json["sample_success"][sample]["mean_genes_per_cell"] = int(line[1].strip())
+        solo_paths = resolve_solo_feature_paths(path_star, sample)
+        summary_stats = parse_summary_metrics(solo_paths["summary"])
+        qc_json["sample_success"][sample].update(summary_stats)
 
         # Load the CellReads.stats file and extract several sample-wise statistics.
-        path_cellreads = glob.glob(path_star + sample + "_*_Solo.out/GeneFull_Ex50pAS/CellReads.stats", recursive=True)
-        df_cellreads = pd.read_csv(path_cellreads[0], sep="\t", header=0, index_col=0)
+        df_cellreads = pd.read_csv(solo_paths["cellreads"], sep="\t", header=0, index_col=0)
 
         # Only keep the filtered cells.
-        path_filtered_barcodes = glob.glob(path_star + sample + "_*_Solo.out/GeneFull_Ex50pAS/filtered/barcodes.tsv", recursive=True)
-        df_cellreads = df_cellreads[df_cellreads.index.isin(pd.read_csv(path_filtered_barcodes[0], sep="\t", header=None, index_col=0).index)]
+        filtered_index = pd.read_csv(
+            solo_paths["filtered_barcodes"], sep="\t", header=None, index_col=0
+        ).index
+        df_cellreads = df_cellreads[df_cellreads.index.isin(filtered_index)]
 
         # Summarize all cells.
         df_cellreads_summed = df_cellreads.sum(axis=0)
@@ -338,7 +409,12 @@ def main(arguments):
     args = parser.parse_args()
 
     # Combine the demuxxing logs with the STAR logs for the sci-dash.
-    qc_json = combine_logs(args.path_pickle, args.path_star, args.path_hashing, args.path_benchmarks)
+    qc_json = combine_logs(
+        args.path_pickle,
+        args.path_star,
+        args.path_hashing,
+        args.path_benchmarks,
+    )
 
     # Write the JSON structure to file.
     if not os.path.exists(os.path.dirname(args.path_out)):

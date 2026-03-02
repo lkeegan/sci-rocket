@@ -31,7 +31,7 @@ See [here](https://teichlab.github.io/scg_lib_structs/methods_html/sci-RNA-seq3.
 
 ## Downstream analysis
 
-For downstream analysis, we also maintain an R package to analyze results produced by **sci-rocket** called [**scir**](https://github.com/odomlab2/scir).
+For downstream analysis, we also maintain an R package to analyze results produced by **sci-rocket** called [**scir**](https://github.com/lauren-saunders-lab/scir).
 
 ## Sample demultiplexing (without hashing)
 

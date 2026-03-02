@@ -34,6 +34,7 @@ def load_scidash_data(experiment: str) -> dict:
     "uncorrectables_sankey",
     "sample_success",
     "hashing",
+    "hashing_summary",
 ]
 )
 def test_output_consistent_between_experiments(experiment: str, field: str):

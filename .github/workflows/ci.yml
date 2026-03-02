@@ -24,7 +24,7 @@ jobs:
         with:
           directory: 'tests/integration/bcl'
           snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/integration/bcl/config.yaml'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --configfile tests/integration/bcl/config.yaml'
       - run: pytest tests/integration/bcl -vvv
 
   test_aviti:
@@ -44,7 +44,7 @@ jobs:
         with:
           directory: 'tests/integration/aviti'
           snakefile: 'workflow/Snakefile'
-          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --verbose --configfile tests/integration/aviti/config.yaml'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --configfile tests/integration/aviti/config.yaml'
       - run: pytest tests/integration/aviti -vvv
 
   docs:

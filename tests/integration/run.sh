@@ -18,9 +18,13 @@ fi
 
 # run each test workflow and its associated pytest tests
 for test_dir in bcl aviti; do
-    rm -rf $test_dir/output
-    snakemake --cores all --use-conda --configfile $test_dir/config.yaml -s ../../workflow/Snakefile -d $test_dir
-    pytest $test_dir -vvv
+    # Keep cached resources (e.g. STAR index) to avoid rebuilding every run.
+    if [ -d "$test_dir/output" ]; then
+        find "$test_dir/output" -mindepth 1 -maxdepth 1 ! -name "resources" -exec rm -rf {} +
+    fi
+
+    snakemake --cores all --use-conda --configfile "$test_dir/config.yaml" -s ../../workflow/Snakefile -d "$test_dir"
+    pytest "$test_dir" -vvv
 done
 
 echo "All integration tests completed successfully."

@@ -43,6 +43,19 @@ def test_sci_dash_data():
     assert data["hashing"]["ZAe-14hpf-28"]["10uM_P7_A8"]["n_corrected"] == 23
     assert data["hashing"]["ZAe-14hpf-28"]["10uM_P7_A8"]["n_correct_upstream"] == 2
 
+    # Check hashing summary consistency against per-hash counts.
+    assert "hashing_summary" in data
+    assert len(data["hashing_summary"]) == len(data["hashing"])
+    assert set(row["sample_name"] for row in data["hashing_summary"]) == set(data["hashing"].keys())
+    assert all("experiment_name" not in row for row in data["hashing_summary"])
+
+    for row in data["hashing_summary"]:
+        sample = row["sample_name"]
+        sample_hash_total = sum(
+            v["n_correct"] + v["n_corrected"] + v["n_correct_upstream"] for v in data["hashing"][sample].values()
+        )
+        assert row["count_total"] == sample_hash_total
+
     assert data["rt_barcode_counts"]["P01"][0] == {'row': 'D', 'col': '9', 'frequency': 1112}
     assert data["rt_barcode_counts"]["P01"][1] == {'row': 'B', 'col': '8', 'frequency': 830}
     assert data["rt_barcode_counts"]["P01"][2] == {'row': 'E', 'col': '7', 'frequency': 821}

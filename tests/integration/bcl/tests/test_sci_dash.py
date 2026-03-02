@@ -29,4 +29,17 @@ def test_sci_dash_data():
     assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_corrected"] == 0
     assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_correct_upstream"] == 3
 
+    # Check hashing summary consistency against per-hash counts.
+    assert "hashing_summary" in data
+    assert len(data["hashing_summary"]) == len(data["hashing"])
+    assert set(row["sample_name"] for row in data["hashing_summary"]) == set(data["hashing"].keys())
+    assert all("experiment_name" not in row for row in data["hashing_summary"])
+
+    for row in data["hashing_summary"]:
+        sample = row["sample_name"]
+        sample_hash_total = sum(
+            v["n_correct"] + v["n_corrected"] + v["n_correct_upstream"] for v in data["hashing"][sample].values()
+        )
+        assert row["count_total"] == sample_hash_total
+
     assert data["rt_barcode_counts"]["P01"][0] == {'row': 'B', 'col': '1', 'frequency': 2048}

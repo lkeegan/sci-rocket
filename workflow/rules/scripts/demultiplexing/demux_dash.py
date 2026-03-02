@@ -20,6 +20,87 @@ def get_benchmarks(path_benchmarks) -> list[dict]:
     return df.to_dict('records')
 
 
+def calculate_hashing_cell_dominance_rows(df_hashing: pd.DataFrame) -> list[dict]:
+    """
+    Build cell-level dominance rows from hashing metrics.
+    """
+
+    if df_hashing.empty:
+        return []
+
+    rows = []
+    for (sample_name, cell_barcode), group in df_hashing.groupby(["sample_name", "cell_barcode"], sort=False):
+        ranked = group.sort_values(by=["count", "hashing_name"], ascending=[False, True]).reset_index(drop=True)
+        count_top = int(ranked.loc[0, "count"])
+        count_total = int(ranked["count"].sum())
+        top_hash = str(ranked.loc[0, "hashing_name"])
+
+        count_second = None
+        ratio = None
+        if len(ranked) > 1:
+            count_second = int(ranked.loc[1, "count"])
+            if count_second > 0:
+                ratio = float(count_top / count_second)
+
+        rows.append(
+            {
+                "sample_name": str(sample_name),
+                "cell_barcode": str(cell_barcode),
+                "top_hash": top_hash,
+                "count_top": count_top,
+                "count_second": count_second,
+                "count_total": count_total,
+                "ratio": ratio,
+            }
+        )
+
+    return rows
+
+
+def calculate_hashing_summary(df_hashing: pd.DataFrame, sample_names: list[str] | None = None) -> list[dict]:
+    """
+    Reproduce the sample-level hashing summary statistics from hashing_metrics.tsv.
+    """
+
+    rows = calculate_hashing_cell_dominance_rows(df_hashing)
+    df_cells = pd.DataFrame(rows, columns=["sample_name", "cell_barcode", "top_hash", "count_top", "count_second", "count_total", "ratio"])
+
+    # Summarize at experiment/sample level.
+    summary = []
+    grouped = {sample_name: group for sample_name, group in df_cells.groupby("sample_name", sort=False)}
+    ordered_sample_names = sample_names if sample_names is not None else list(grouped.keys())
+
+    for sample_name in ordered_sample_names:
+        if sample_name in grouped:
+            group = grouped[sample_name]
+        else:
+            group = df_cells.iloc[0:0]
+
+        ratios = group["ratio"].dropna()
+        cells_passing = int((group["ratio"] >= 3).fillna(False).sum())
+        n_cells = int(len(group))
+
+        mean_count = float(group["count_total"].mean()) if n_cells else None
+        count_total = int(group["count_total"].sum()) if n_cells else 0
+        median_ratio = float(ratios.median()) if len(ratios) else None
+        mean_ratio = float(ratios.mean()) if len(ratios) else None
+        fraction_passing = float(cells_passing / n_cells) if n_cells else None
+
+        summary.append(
+            {
+                "sample_name": str(sample_name),
+                "mean_count": mean_count,
+                "count_total": count_total,
+                "median_ratio": median_ratio,
+                "mean_ratio": mean_ratio,
+                "cells_passing": cells_passing,
+                "fraction_passing": fraction_passing,
+            }
+        )
+
+    return summary
+
+
 def write_cell_hashing_table(qc, out):
     """
     Write the following cell-based metrics:
@@ -31,7 +112,8 @@ def write_cell_hashing_table(qc, out):
         out (str): Path to output hashing metrics.
 
     Returns:
-        (dict): Dictionary of the hashing metrics.
+        (dict): Dictionary of the hashing metrics for the dashboard hashing table.
+        (list[dict]): Summary statistics derived from the cell-level hashing metrics.
     """
 
     # Create a list of dictionaries.
@@ -82,6 +164,9 @@ def write_cell_hashing_table(qc, out):
     # Write to file.
     df_hashing.to_csv(out, sep="\t", index=False, header=True, encoding="utf-8", mode="w")
 
+    # Build sample-level summary statistics used in an extra dashboard table.
+    hashing_summary = calculate_hashing_summary(df_hashing, sample_names=list(qc["hashing"].keys()))
+
     # Transform into a dictionary for sci-dashboard.
     # Initialize the dictionary of sample_name and underlying hashing_name also a dictionary.
     dict_hashing = {sample_name : {hashing_name : {} for hashing_name in qc["hashing"][sample_name]} for sample_name in qc["hashing"]}
@@ -92,7 +177,7 @@ def write_cell_hashing_table(qc, out):
             dict_hashing[sample_name][hashing_name]["n_corrected"] = qc["hashing"][sample_name][hashing_name]["n_corrected"]
             dict_hashing[sample_name][hashing_name]["n_correct_upstream"] = qc["hashing"][sample_name][hashing_name]["n_correct_upstream"]
 
-    return dict_hashing
+    return dict_hashing, hashing_summary
 
 
 def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
@@ -218,10 +303,12 @@ def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
 
     # region Write / import hashing statistics. --------------------------------------------------------------------------
     if "hashing" in qc:
-        df_hashing = write_cell_hashing_table(qc, path_hashing)
-        qc_json["hashing"] = df_hashing
+        dict_hashing, hashing_summary = write_cell_hashing_table(qc, path_hashing)
+        qc_json["hashing"] = dict_hashing
+        qc_json["hashing_summary"] = hashing_summary
     else:
         qc_json["hashing"] = {}
+        qc_json["hashing_summary"] = []
     # endregion ----------------------------------------------------------------------------------------------------------
 
     qc_json["benchmarks"] = get_benchmarks(path_benchmarks)

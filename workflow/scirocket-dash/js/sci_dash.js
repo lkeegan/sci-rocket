@@ -572,54 +572,22 @@ function generate_starsolo_table(data) {
   table.innerHTML = `
       <thead>
         <tr>
-          <th style="text-align:center">
-            Sample
-          </th>
-          <th style="text-align:center">
-            Input reads
-          </th>
-          <th style="text-align:center">
-          Sequencing saturation
-          </th>
-          <th style="text-align:center">
-            Mapped reads<br><sub>(Genome; %)</sub>
-          </th>
-          <th style="text-align:center">
-          Mapped reads<br><sub>(Genome - Unique; %)</sub>
-          </th>
-          <th style="text-align:center">
-          Mapped reads<br><sub>(Genes; %)</sub>
-          </th>
-          <th style="text-align:center">
-          Mapped reads<br><sub>(Genes - Unique; %)</sub>
-          </th>
-          <th style="text-align:center">
-            # intronic reads
-          </th>
-          <th style="text-align:center">
-            # intergenic reads
-          </th>
-          <th style="text-align:center">
-            # mitochondrial reads
-          </th>
-          <th style="text-align:center">
-          # exonic (AS) reads
-          </th>
-          <th style="text-align:center">
-            # intronic (AS) reads
-          </th>
-          <th style="text-align:center">
-          Reads per cell<br><sub>(Mean)</sub>
-          </th>
-          <th style="text-align:center">
-          Genes per cell<br><sub>(Mean)</sub>
-          </th>
-          <th style="text-align:center">
-          UMI per cell<br><sub>(Mean)</sub>
-          </th>
-          <th style="text-align:center">
-          Estimated cells
-          </th>
+          <th>Sample</th>
+          <th>Input reads</th>
+          <th>Sequencing saturation</th>
+          <th>Mapped reads<br><sub>(Genome; %)</sub></th>
+          <th>Mapped reads<br><sub>(Genome - Unique; %)</sub></th>
+          <th>Mapped reads<br><sub>(Genes; %)</sub></th>
+          <th>Mapped reads<br><sub>(Genes - Unique; %)</sub></th>
+          <th># intronic reads</th>
+          <th># intergenic reads</th>
+          <th># mitochondrial reads</th>
+          <th># exonic (AS) reads</th>
+          <th># intronic (AS) reads</th>
+          <th>Reads per cell<br><sub>(Mean)</sub></th>
+          <th>Genes per cell<br><sub>(Mean)</sub></th>
+          <th>UMI per cell<br><sub>(Mean)</sub></th>
+          <th>Estimated cells</th>
         </tr>
       </thead>
       <tbody class="table-tbody">
@@ -706,6 +674,74 @@ document.addEventListener("DOMContentLoaded", function () {
 // Table - Hashing summary.
 //--------------------------------------------
 
+function generate_hashing_summary_table(summaryRows) {
+  const table = document.getElementById("sample-hashing-summary-table");
+  if (!table) return;
+
+  table.className = "table card-table table-vcenter text-nowrap datatable tablesorter";
+  table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Sample</th>
+          <th>Mean count</th>
+          <th>Count total</th>
+          <th>Median ratio</th>
+          <th>Mean ratio</th>
+          <th>Cells passing<br><sub>(ratio >= 3)</sub></th>
+          <th>Fraction passing</th>
+        </tr>
+      </thead>
+      <tbody class="table-tbody">
+      </tbody>`;
+
+  const tbody = table.querySelector("tbody");
+
+  for (const rowData of summaryRows) {
+    const row = tbody.insertRow(-1);
+    row.insertCell(0).innerHTML = rowData.sample_name ?? "";
+    row.insertCell(1).innerHTML = rowData.mean_count == null ? "NA" : roundToOne(rowData.mean_count);
+    row.insertCell(2).innerHTML = rowData.count_total == null ? "NA" : Intl.NumberFormat("en-US").format(rowData.count_total);
+    row.insertCell(3).innerHTML = rowData.median_ratio == null ? "NA" : roundToOne(rowData.median_ratio);
+    row.insertCell(4).innerHTML = rowData.mean_ratio == null ? "NA" : roundToOne(rowData.mean_ratio);
+    row.insertCell(5).innerHTML = rowData.cells_passing == null ? "NA" : Intl.NumberFormat("en-US").format(rowData.cells_passing);
+    const fractionCell = row.insertCell(6);
+    if (rowData.fraction_passing == null) {
+      fractionCell.innerHTML = "NA";
+    } else {
+      const fractionPassingPercent = Math.round(Number(rowData.fraction_passing) * 100);
+      let fractionPassingTextClass = "";
+      let fractionPassingBarClass = "";
+      if (fractionPassingPercent < 20) {
+        fractionPassingTextClass = "text-red";
+        fractionPassingBarClass = "bg-red";
+      } else if (fractionPassingPercent < 40) {
+        fractionPassingTextClass = "text-yellow";
+        fractionPassingBarClass = "bg-yellow";
+      }
+
+      const progress = createElement("div", "row align-items-center");
+      const col1 = createElement("div", `col-12 col-lg-auto ${fractionPassingTextClass}`, `${fractionPassingPercent}%`);
+      const col2 = createElement("div", "col");
+      const progress_bar = createElement("div", "progress");
+      progress_bar.style.width = "3rem";
+      progress_bar.style.height = "0.55rem";
+      const progress_bar_inner = createElement("div", `progress-bar ${fractionPassingBarClass}`);
+      progress_bar_inner.style.width = `${fractionPassingPercent}%`;
+      progress_bar_inner.setAttribute("role", "progressbar");
+      progress_bar_inner.setAttribute("aria-valuenow", fractionPassingPercent);
+      progress_bar_inner.setAttribute("aria-valuemin", "0");
+      progress_bar_inner.setAttribute("aria-valuemax", "100");
+      const span = createElement("span", "visually-hidden", `${fractionPassingPercent}%`);
+      progress_bar_inner.appendChild(span);
+      progress_bar.appendChild(progress_bar_inner);
+      col2.appendChild(progress_bar);
+      progress.appendChild(col1);
+      progress.appendChild(col2);
+      fractionCell.appendChild(progress);
+    }
+  }
+}
+
 // For each hashing barcode, generate a row in the table.
 // The row will contain the following information:
 // 1. Hashing Sample
@@ -720,24 +756,12 @@ function generate_hashing_table(data) {
   table.innerHTML = `
       <thead>
         <tr>
-          <th style="text-align:center">
-          Sample
-          </th>
-          <th style="text-align:center">
-            Hashing barcode
-          </th>
-          <th style="text-align:center">
-            Total count<br><sub>(summarized)</sub>
-          </th>
-          <th style="text-align:center">
-            Total count<br><sub>(correct)</sub>
-          </th>
-          <th style="text-align:center">
-            Total count<br><sub>(corrected)</sub>
-          </th>
-          <th style="text-align:center">
-          Total count<br><sub>(correct:upstream)</sub>
-          </th>
+          <th>Sample</th>
+          <th>Hashing barcode</th>
+          <th>Total count<br><sub>(summarized)</sub></th>
+          <th>Total count<br><sub>(correct)</sub></th>
+          <th>Total count<br><sub>(corrected)</sub></th>
+          <th>Total count<br><sub>(correct:upstream)</sub></th>
         </tr>
       </thead>
       <tbody class="table-tbody">
@@ -757,7 +781,12 @@ function generate_hashing_table(data) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  generate_hashing_summary_table(data.hashing_summary || []);
   generate_hashing_table(data.hashing);
+
+  $("#sample-hashing-summary-table").tablesorter({
+    sortList: [[1, 0]],
+  });
 
   $("#sample-hashing-table").tablesorter({
     sortList: [[0, 0]],

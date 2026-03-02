@@ -27,6 +27,27 @@ const createElement = (type, className, innerHTML) => {
   return element;
   };
 
+function initializePopovers() {
+  const warningText = "Saturation below 40%: take cell recovery with a grain of salt";
+  const warningElements = document.querySelectorAll(".saturation-warning");
+
+  if (window.tippy) {
+    warningElements.forEach((el) => {
+      if (el._tippy) el._tippy.destroy();
+      tippy(el, {
+        content: warningText,
+        trigger: "mouseenter focus",
+        placement: "top",
+      });
+    });
+    return;
+  }
+
+  warningElements.forEach((el) => {
+    el.setAttribute("title", warningText);
+  });
+}
+
 
 // Function to generate a matrix chart using heatmap.js
 function generateMatrixChart(data_chart, ctx, rgb_x, rgb_y, rgb_z) {
@@ -558,6 +579,9 @@ function generate_starsolo_table(data) {
             Input reads
           </th>
           <th style="text-align:center">
+          Sequencing saturation
+          </th>
+          <th style="text-align:center">
             Mapped reads<br><sub>(Genome; %)</sub>
           </th>
           <th style="text-align:center">
@@ -596,9 +620,6 @@ function generate_starsolo_table(data) {
           <th style="text-align:center">
           Estimated cells
           </th>
-          <th style="text-align:center">
-          Sequencing saturation
-          </th>
         </tr>
       </thead>
       <tbody class="table-tbody">
@@ -606,48 +627,73 @@ function generate_starsolo_table(data) {
 
   const tbody = table.querySelector("tbody");
   for (const sample in data) {
+    const sequencingSaturationPercent = Math.round(data[sample].sequencing_saturation * 100);
+    let sequencingSaturationTextClass = "";
+    let sequencingSaturationBarClass = "";
+    if (sequencingSaturationPercent < 20) {
+      sequencingSaturationTextClass = "text-red";
+      sequencingSaturationBarClass = "bg-red";
+    } else if (sequencingSaturationPercent < 40) {
+      sequencingSaturationTextClass = "text-yellow";
+      sequencingSaturationBarClass = "bg-yellow";
+    }
+
     const row = tbody.insertRow(-1);
     row.insertCell(0).innerHTML = sample;
     row.insertCell(1).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_reads);
-    row.insertCell(2).innerHTML = `${roundToOne(data[sample].perc_mapped_reads_genome * 100)}%`;
-    row.insertCell(3).innerHTML = `${roundToOne(data[sample].perc_unique_reads_genome_unique * 100)}%`;
-    row.insertCell(4).innerHTML = `${roundToOne(data[sample].perc_mapped_reads_gene * 100)}%`;
-    row.insertCell(5).innerHTML = `${roundToOne(data[sample].perc_unique_reads_gene_unique * 100)}%`;
-    row.insertCell(6).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_intronic_reads);
-    row.insertCell(7).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_intergenic_reads);
-    row.insertCell(8).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_mitochondrial_reads);
-    row.insertCell(9).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_exonicAS_reads);
-    row.insertCell(10).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_intronicAS_reads);
-    row.insertCell(11).innerHTML = Intl.NumberFormat("en-US").format(data[sample].mean_reads_per_cell);
-    row.insertCell(12).innerHTML = Intl.NumberFormat("en-US").format(data[sample].mean_genes_per_cell);
-    row.insertCell(13).innerHTML = Intl.NumberFormat("en-US").format(data[sample].mean_umi_per_cell);
-    row.insertCell(14).innerHTML = Intl.NumberFormat("en-US").format(data[sample].estimated_cells);
-
-    // Add a progress bar for the sequencing_saturation
-    const cell = row.insertCell(15);
+    const saturationCell = row.insertCell(2);
     const progress = createElement("div", "row align-items-center");
-    const col1 = createElement("div", "col-12 col-lg-auto", `${Math.round(data[sample].sequencing_saturation * 100)}%`);
+    const col1 = createElement("div", `col-12 col-lg-auto ${sequencingSaturationTextClass}`, `${sequencingSaturationPercent}%`);
+    if (sequencingSaturationPercent < 40) {
+      col1.classList.add("saturation-warning");
+      col1.setAttribute("tabindex", "0");
+      col1.style.cursor = "help";
+    }
     const col2 = createElement("div", "col");
     const progress_bar = createElement("div", "progress");
     progress_bar.style.width = "3rem";
-    const progress_bar_inner = createElement("div", "progress-bar");
-    progress_bar_inner.style.width = `${data[sample].sequencing_saturation * 100}%`;
+    const progress_bar_inner = createElement("div", `progress-bar ${sequencingSaturationBarClass}`);
+    progress_bar.style.height = "0.55rem";
+    if (sequencingSaturationPercent < 40) {
+      progress_bar.classList.add("saturation-warning");
+      progress_bar.setAttribute("tabindex", "0");
+      progress_bar.style.cursor = "help";
+      progress_bar_inner.classList.add("saturation-warning");
+      progress_bar_inner.setAttribute("tabindex", "0");
+      progress_bar_inner.style.cursor = "help";
+    }
+    progress_bar_inner.style.width = `${sequencingSaturationPercent}%`;
     progress_bar_inner.setAttribute("role", "progressbar");
-    progress_bar_inner.setAttribute("aria-valuenow", data[sample].sequencing_saturation);
+    progress_bar_inner.setAttribute("aria-valuenow", sequencingSaturationPercent);
     progress_bar_inner.setAttribute("aria-valuemin", "0");
     progress_bar_inner.setAttribute("aria-valuemax", "100");
-    const span = createElement("span", "visually-hidden", `${data[sample].sequencing_saturation}%`);
+    const span = createElement("span", "visually-hidden", `${sequencingSaturationPercent}%`);
     progress_bar_inner.appendChild(span);
     progress_bar.appendChild(progress_bar_inner);
     col2.appendChild(progress_bar);
     progress.appendChild(col1);
     progress.appendChild(col2);
-    cell.appendChild(progress);
+    saturationCell.appendChild(progress);
+
+    row.insertCell(3).innerHTML = `${roundToOne(data[sample].perc_mapped_reads_genome * 100)}%`;
+    row.insertCell(4).innerHTML = `${roundToOne(data[sample].perc_unique_reads_genome_unique * 100)}%`;
+    row.insertCell(5).innerHTML = `${roundToOne(data[sample].perc_mapped_reads_gene * 100)}%`;
+    row.insertCell(6).innerHTML = `${roundToOne(data[sample].perc_unique_reads_gene_unique * 100)}%`;
+    row.insertCell(7).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_intronic_reads);
+    row.insertCell(8).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_intergenic_reads);
+    row.insertCell(9).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_mitochondrial_reads);
+    row.insertCell(10).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_exonicAS_reads);
+    row.insertCell(11).innerHTML = Intl.NumberFormat("en-US").format(data[sample].total_intronicAS_reads);
+    row.insertCell(12).innerHTML = Intl.NumberFormat("en-US").format(data[sample].mean_reads_per_cell);
+    row.insertCell(13).innerHTML = Intl.NumberFormat("en-US").format(data[sample].mean_genes_per_cell);
+    row.insertCell(14).innerHTML = Intl.NumberFormat("en-US").format(data[sample].mean_umi_per_cell);
+    row.insertCell(15).innerHTML = Intl.NumberFormat("en-US").format(data[sample].estimated_cells);
   }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
   generate_starsolo_table(data.sample_success);
+  initializePopovers();
 
   // Sort using tablesorter
   $("#sample-starsolo-table").tablesorter({

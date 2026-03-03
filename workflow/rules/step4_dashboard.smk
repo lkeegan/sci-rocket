@@ -26,7 +26,7 @@ rule sci_dash:
         path_star=out("{experiment_name}/alignment/"),
         # Optional hashing output. 
         metrics_hashing=out("{experiment_name}/hashing/{experiment_name}_hashing_metrics.tsv"),
-        benchmarks_folder=out("benchmarks/{experiment_name}")
+        benchmarks_folder=out("benchmarks/{experiment_name}"),
     conda:
         "envs/sci-rocket.yaml",
     message:

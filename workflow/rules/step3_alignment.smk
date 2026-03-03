@@ -38,6 +38,10 @@ def get_expected_cells(wildcards):
     x = samples_unique[samples_unique["sample_name"] == wildcards.sample_name]
     return x["n_expected_cells"].values[0]
 
+def get_star_solo_features():
+    configured = config["settings"].get("star_solo_features", "").strip()
+    return configured if configured else "GeneFull_Ex50pAS"
+
 
 rule generate_index_STAR:
     output:
@@ -91,10 +95,6 @@ rule starSolo_align:
         dir_solo=directory(
             out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out")
         ),
-        barcodes_raw=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/raw/barcodes.tsv"),
-        barcodes_raw_converted=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/raw/barcodes_converted.tsv"),
-        barcodes_filtered=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/filtered/barcodes.tsv"),
-        barcodes_filtered_converted=out("{experiment_name}/alignment/{sample_name}_{species}_Solo.out/GeneFull_Ex50pAS/filtered/barcodes_converted.tsv"),
     log:
         out("logs/step3_alignment/star_align_{experiment_name}_{sample_name}_{species}.log"),
     threads: 30
@@ -107,6 +107,7 @@ rule starSolo_align:
         extra=config["settings"]["star"],
         path_barcodes=config["path_barcodes"],
         n_expected_cells=lambda w: get_expected_cells(w),
+        solo_features=lambda w: get_star_solo_features(),
     conda:
         "envs/sci-rocket.yaml",
     message:
@@ -115,7 +116,9 @@ rule starSolo_align:
         """
         STAR {params.extra} --genomeDir {input.index} --runThreadN {threads} \
         --readFilesIn {input.R2} {input.R1} --readFilesCommand zcat \
-        --soloFeatures GeneFull_Ex50pAS --soloType CB_UMI_Complex --soloCBmatchWLtype Exact \
+        --soloFeatures {params.solo_features} \
+        --soloType CB_UMI_Complex \
+        --soloCBmatchWLtype Exact \
         --soloCellReadStats Standard \
         --soloCBposition 0_0_0_9 0_10_0_19 0_20_0_29 0_30_0_39 --soloUMIposition 0_40_0_47 \
         --soloCBwhitelist {input.whitelist_p7} {input.whitelist_p5} {input.whitelist_ligation} {input.whitelist_rt} \
@@ -124,9 +127,8 @@ rule starSolo_align:
         --outTmpKeep all \
         --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {params.sampleName} >& {log}
 
-        # Convert the barcodes to the barcode naming scheme.
-        python3 {workflow.basedir}/rules/scripts/demultiplexing/STARSolo_convertBarcodes.py --starsolo_barcodes {output.barcodes_raw} --barcodes {params.path_barcodes} --out {output.barcodes_raw_converted}
-        python3 {workflow.basedir}/rules/scripts/demultiplexing/STARSolo_convertBarcodes.py --starsolo_barcodes {output.barcodes_filtered} --barcodes {params.path_barcodes} --out {output.barcodes_filtered_converted}
+        # Convert STARSolo barcodes to the barcode naming scheme for all configured features.
+        python3 {workflow.basedir}/rules/scripts/demultiplexing/STARSolo_convertBarcodes.py --solo_out_dir {output.dir_solo} --features {params.solo_features} --barcodes {params.path_barcodes}
         """
 
 

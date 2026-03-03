@@ -1,6 +1,7 @@
 # Introduction
 
-**sci-rocket** is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow which performs processing of sci-RNA-seq3 sequencing, including barcode demultiplexing and downstream alignment / UMI-counting using [STARSolo](https://github.com/alexdobin/STAR).
+**sci-rocket** is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow which performs processing of sci-RNA-seq3 sequencing,
+including barcode demultiplexing and downstream alignment / UMI-counting using [STARSolo](https://github.com/alexdobin/STAR).
 
 Please see the set-up instructions below for more information on how to install and run the workflow.
 
@@ -19,7 +20,7 @@ We make use of pre-defined environment(s) which houses all software dependencies
 1. Clone the repository:
 
       ```bash
-      git clone https://github.com/odomlab2/sci-rocket
+      git clone https://github.com/lauren-saunders-lab/sci-rocket
       ```
 
 2. Download and install snakemake (e.g. using conda or micromamba):
@@ -47,6 +48,6 @@ We make use of pre-defined environment(s) which houses all software dependencies
 
 ## Configuration
 
-The workflow requires a configuration file (`config.yaml`) which can be copied from the [example configuration file](https://github.com/odomlab2/sci-rocket/blob/main/workflow/examples/example_config.yaml) and adjusted to your needs.
+The workflow requires a configuration file (`config.yaml`) which can be copied from the [example configuration file](https://github.com/lauren-saunders-lab/sci-rocket/blob/main/workflow/examples/example_config.yaml) and adjusted to your needs.
 
 Within the configuration file, the [sample-sheet](overview_files.md) (`path_samples`) needs to be specified. This file contains the sample names and paths to the raw sequencing data (BCL or FASTQ).

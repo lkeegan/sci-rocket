@@ -10,15 +10,8 @@ jobs:
   test_bcl:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - run: pip install pytest pandas
-      - name: Unit tests
-        run: pytest tests/unit -vvv
-      - name: Download test data
-        run: mkdir -p tests/integration/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.09/test-data.tgz | tar -xvzf - -C tests/integration/data
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/ci-setup
       - name: Run BCL workflow integration tests
         uses: snakemake/snakemake-github-action@v2
         with:
@@ -30,15 +23,8 @@ jobs:
   test_aviti:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - run: pip install pytest pandas
-      - name: Unit tests
-        run: pytest tests/unit -vvv
-      - name: Download test data
-        run: mkdir -p tests/integration/data && wget -O - https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/2026.01.09/test-data.tgz | tar -xvzf - -C tests/integration/data
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/ci-setup
       - name: Run AVITI workflow integration tests
         uses: snakemake/snakemake-github-action@v2
         with:
@@ -47,13 +33,26 @@ jobs:
           args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --configfile tests/integration/aviti/config.yaml'
       - run: pytest tests/integration/aviti -vvv
 
+  test_velocity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/ci-setup
+      - name: Run velocity workflow integration tests
+        uses: snakemake/snakemake-github-action@v2
+        with:
+          directory: 'tests/integration/velocity'
+          snakefile: 'workflow/Snakefile'
+          args: '--cores 4 --use-conda --conda-cleanup-pkgs cache -p --configfile tests/integration/velocity/config.yaml'
+      - run: pytest tests/integration/velocity -vvv
+
   docs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
       - uses: actions/cache@v4
@@ -64,4 +63,3 @@ jobs:
             mkdocs-material-
       - run: pip install mkdocs-material 
       - run: mkdocs gh-deploy --force
-

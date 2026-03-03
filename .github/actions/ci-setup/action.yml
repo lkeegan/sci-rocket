@@ -1,0 +1,30 @@
+name: CI setup
+description: "Setup Python, install test deps, download integration test data."
+
+inputs:
+  test-data-version:
+    description: "Version tag of sci-rocket-test-data release"
+    required: false
+    default: "2026.01.09"
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.13"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install test dependencies
+      shell: bash
+      run: python -m pip install pytest pandas
+
+    - name: Download integration test data
+      shell: bash
+      run: |
+        mkdir -p tests/integration/data
+        URL="https://github.com/lauren-saunders-lab/sci-rocket-test-data/releases/download/${{ inputs.test-data-version }}/test-data.tgz"
+        wget -O - "$URL" | tar -xvzf - -C tests/integration/data

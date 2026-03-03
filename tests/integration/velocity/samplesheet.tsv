@@ -1,0 +1,2 @@
+path_fastq	experiment_name	p5	p7	rt	sample_name	species	n_expected_cells
+../data/reads/fastq_from_aviti/one_run/run1	velocity	A03:H03	D01:D12	P01-D07:P01-H07	ZAe-10hpf-28	Zebrafish	14421

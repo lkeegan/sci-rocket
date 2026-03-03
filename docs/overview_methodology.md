@@ -5,8 +5,8 @@ See [here](https://teichlab.github.io/scg_lib_structs/methods_html/sci-RNA-seq3.
 ## Major steps
 
 1. Check for sanity of provided barcodes and sample-sheet.
-2. Converts BCL files to paired-end .fq.gz files with PCR indexes in header (**bcl2fastq**).
-   - Merges multiple sequencing runs (`path_bcl`) into one experiment-based file (`experiment_name`).
+2. Converts AVITI/BCL files to paired-end .fq.gz files in Illumina (p5 RC) format with PCR indexes in header (**bcl2fastq**/**Bases2Fastq**/**fastq-fix-i5**).
+   - Merges multiple sequencing runs (`path_reads`) into one experiment-based file (`experiment_name`).
 3. Splits paired-end .fq.fz files into smaller (evenly-sized) chunks for parallelization (**fastqsplitter**).
 4. Demultiplexing using the supplied sample-specific barcodes (**sci-rocket**).
    - Finds exact or nearest match for PCR Index #1 (p5), PCR Index #1 (p7), ligation and/or RT barcode (single match with ≤1 hamming distance).
@@ -21,7 +21,7 @@ See [here](https://teichlab.github.io/scg_lib_structs/methods_html/sci-RNA-seq3.
 7. Generate demultiplexing/alignment overview. (**sci-dash**)
    - Generates a HTML report with demultiplexing and alignment statistics.
 
-> Parallization is performed per experiment_name and split chunk.
+> Parallelization is performed per experiment_name and split chunk.
 
 ### Optional steps
 
@@ -39,7 +39,7 @@ For downstream analysis, we also maintain an R package to analyze results produc
 
 ```text
       @READNAME 1:N:0:CCGTATGATT+AGATGCAACT
-                        |----p7---|+|----p5----|: p5 is reverse-complemented during demuxxing.
+                        |----p7---|+|----p5----|: p5 is reverse-complemented (RC) in the read header (Illumina convention).
       ACTTGATTGTCAGAGCTTTGGTATCCTACCAGTT
 
       The R1 sequence should adhere to the following scheme:
@@ -103,9 +103,9 @@ The major output files are the following:
 1. **Sequence and sample-specific fastq file(s)**:
    - `{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz`
    - `{experiment_name}/demux_reads/{sample_name}_R2.fastq.gz`
-   - `{experiment_name}/demux_reads/{sample_name}_R1_discarded.fastq.gz`
-   - `{experiment_name}/demux_reads/{sample_name}_R2_discarded.fastq.gz`
-   - `{experiment_name}/demux_reads/log_{sample_name}_discarded_reads.tsv.gz`
+   - `{experiment_name}/demux_reads/{experiment_name}_R1_discarded.fastq.gz`
+   - `{experiment_name}/demux_reads/{experiment_name}_R2_discarded.fastq.gz`
+   - `{experiment_name}/demux_reads/log_{experiment_name}_discarded_reads.tsv.gz`
 2. **Alignment files**:
    - `{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam/bai`
    - `{experiment_name}/alignment/{sample_name}_{species}_Solo.out/`

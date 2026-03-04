@@ -6,6 +6,11 @@ import pickle
 import sys
 import pathlib
 
+HASH_RATIO_PASSING_THRESHOLD = 3.0
+HASH_UMI_FILTER_THRESHOLD = 5
+HASH_COUNT_BIN_LABELS = [f"{start}-{start + 9}" for start in range(1, 100, 10)] + ["100+"]
+HASH_COUNT_BIN_BREAKS = list(range(0, 101, 10)) + [float("inf")]
+
 
 def parse_float(value):
     return float(value.strip())
@@ -126,41 +131,56 @@ def calculate_hashing_cell_dominance_rows(df_hashing: pd.DataFrame) -> list[dict
     rows = []
     for (sample_name, cell_barcode), group in df_hashing.groupby(["sample_name", "cell_barcode"], sort=False):
         ranked = group.sort_values(by=["count", "hashing_name"], ascending=[False, True]).reset_index(drop=True)
-        count_top = int(ranked.loc[0, "count"])
-        count_total = int(ranked["count"].sum())
+        hash_count_top = int(ranked.loc[0, "count"])
+        hash_count_total = int(ranked["count"].sum())
+        hash_umi_total = ranked.loc[0, "n_umi"] if "n_umi" in ranked.columns else hash_count_top
+        hash_umi_total = int(hash_umi_total) if pd.notna(hash_umi_total) else 0
         top_hash = str(ranked.loc[0, "hashing_name"])
 
-        count_second = None
-        ratio = None
+        hash_count_second = None
         if len(ranked) > 1:
-            count_second = int(ranked.loc[1, "count"])
-            if count_second > 0:
-                ratio = float(count_top / count_second)
+            hash_count_second = int(ranked.loc[1, "count"])
+
+        # Use a pseudocount of 1 when no second hash exists for this cell.
+        if hash_count_second is None:
+            hash_enrichment_ratio = float(hash_count_top)
+        elif hash_count_second == 0:
+            hash_enrichment_ratio = float("inf")
+        else:
+            hash_enrichment_ratio = float(hash_count_top / hash_count_second)
 
         rows.append(
             {
                 "sample_name": str(sample_name),
                 "cell_barcode": str(cell_barcode),
                 "top_hash": top_hash,
-                "count_top": count_top,
-                "count_second": count_second,
-                "count_total": count_total,
-                "ratio": ratio,
+                "hash_count_top": hash_count_top,
+                "hash_count_second": hash_count_second,
+                "hash_count_total": hash_count_total,
+                "hash_umi_total": hash_umi_total,
+                "hash_enrichment_ratio": hash_enrichment_ratio,
             }
         )
 
     return rows
 
 
-def calculate_hashing_summary(df_hashing: pd.DataFrame, sample_names: list[str] | None = None) -> list[dict]:
-    """
-    Reproduce the sample-level hashing summary statistics from hashing_metrics.tsv.
-    """
-
+def _get_hashing_cell_dominance_df(df_hashing: pd.DataFrame) -> pd.DataFrame:
     rows = calculate_hashing_cell_dominance_rows(df_hashing)
-    df_cells = pd.DataFrame(rows, columns=["sample_name", "cell_barcode", "top_hash", "count_top", "count_second", "count_total", "ratio"])
+    columns = [
+        "sample_name",
+        "cell_barcode",
+        "top_hash",
+        "hash_count_top",
+        "hash_count_second",
+        "hash_count_total",
+        "hash_umi_total",
+        "hash_enrichment_ratio",
+    ]
+    return pd.DataFrame(rows, columns=columns)
 
-    # Summarize at experiment/sample level.
+
+def _summarize_hashing_cells(df_cells: pd.DataFrame, sample_names: list[str] | None = None) -> list[dict]:
     summary = []
     grouped = {sample_name: group for sample_name, group in df_cells.groupby("sample_name", sort=False)}
     ordered_sample_names = sample_names if sample_names is not None else list(grouped.keys())
@@ -171,29 +191,128 @@ def calculate_hashing_summary(df_hashing: pd.DataFrame, sample_names: list[str] 
         else:
             group = df_cells.iloc[0:0]
 
-        ratios = group["ratio"].dropna()
-        cells_passing = int((group["ratio"] >= 3).fillna(False).sum())
-        n_cells = int(len(group))
+        ratios = group["hash_enrichment_ratio"].dropna()
+        cells_passing = int((group["hash_enrichment_ratio"] >= HASH_RATIO_PASSING_THRESHOLD).fillna(False).sum())
+        total_cells = int(len(group))
 
-        mean_count = float(group["count_total"].mean()) if n_cells else None
-        count_total = int(group["count_total"].sum()) if n_cells else 0
-        median_ratio = float(ratios.median()) if len(ratios) else None
-        mean_ratio = float(ratios.mean()) if len(ratios) else None
-        fraction_passing = float(cells_passing / n_cells) if n_cells else None
+        mean_hash_count = float(group["hash_count_total"].mean()) if total_cells else None
+        hash_count_total = int(group["hash_count_total"].sum()) if total_cells else 0
+        hash_umi_total = int(group["hash_umi_total"].sum()) if total_cells else 0
+        median_hash_ratio = float(ratios.median()) if len(ratios) else None
+        mean_hash_ratio = float(ratios.mean()) if len(ratios) else None
+        fraction_passing = float(cells_passing / total_cells) if total_cells else None
 
         summary.append(
             {
                 "sample_name": str(sample_name),
-                "mean_count": mean_count,
-                "count_total": count_total,
-                "median_ratio": median_ratio,
-                "mean_ratio": mean_ratio,
+                "mean_hash_count": mean_hash_count,
+                "hash_count_total": hash_count_total,
+                "hash_umi_total": hash_umi_total,
+                "median_hash_ratio": median_hash_ratio,
+                "mean_hash_ratio": mean_hash_ratio,
+                "total_cells": total_cells,
                 "cells_passing": cells_passing,
                 "fraction_passing": fraction_passing,
             }
         )
 
     return summary
+
+
+def _filter_hashing_cells(df_cells: pd.DataFrame, min_hash_umi_total: int) -> pd.DataFrame:
+    if df_cells.empty:
+        return df_cells.copy()
+    return df_cells[df_cells["hash_umi_total"] >= min_hash_umi_total].copy()
+
+
+def calculate_hashing_summary(
+    df_hashing: pd.DataFrame,
+    sample_names: list[str] | None = None,
+) -> list[dict]:
+    """
+    Summarize cell-level hashing dominance statistics per sample.
+    """
+    df_cells = _get_hashing_cell_dominance_df(df_hashing)
+    return _summarize_hashing_cells(df_cells, sample_names=sample_names)
+
+
+def calculate_hashing_summary_filtered(
+    df_hashing: pd.DataFrame,
+    sample_names: list[str] | None = None,
+    min_hash_umi_total: int = HASH_UMI_FILTER_THRESHOLD,
+) -> list[dict]:
+    """
+    Summarize cell-level hashing dominance statistics per sample after
+    filtering cells on hash_umi_total.
+    """
+    df_cells = _get_hashing_cell_dominance_df(df_hashing)
+    df_cells_filt = _filter_hashing_cells(df_cells, min_hash_umi_total=min_hash_umi_total)
+    return _summarize_hashing_cells(df_cells_filt, sample_names=sample_names)
+
+
+def calculate_hashing_bin_summary(
+    df_hashing: pd.DataFrame,
+    sample_names: list[str] | None = None,
+    min_hash_umi_total: int = HASH_UMI_FILTER_THRESHOLD,
+) -> list[dict]:
+    """
+    Build sample/count-bin rows with passing fraction and n_cells.
+    """
+    df_cells = _get_hashing_cell_dominance_df(df_hashing)
+    df_cells_filt = _filter_hashing_cells(df_cells, min_hash_umi_total=min_hash_umi_total)
+
+    if sample_names is None:
+        sample_names = list(dict.fromkeys(df_cells_filt["sample_name"].tolist()))
+
+    if df_cells_filt.empty:
+        by_sample_and_bin = {}
+    else:
+        df_cells_filt["count_bin"] = pd.cut(
+            df_cells_filt["hash_count_total"],
+            bins=HASH_COUNT_BIN_BREAKS,
+            labels=HASH_COUNT_BIN_LABELS,
+            include_lowest=True,
+        )
+
+        by_sample_and_bin = {}
+        for (sample_name, count_bin), group in df_cells_filt.groupby(["sample_name", "count_bin"], sort=False, observed=True):
+            n_cells = int(len(group))
+            fraction_passing = float((group["hash_enrichment_ratio"] >= HASH_RATIO_PASSING_THRESHOLD).mean()) if n_cells else None
+            by_sample_and_bin[(str(sample_name), str(count_bin))] = {
+                "fraction_passing": fraction_passing,
+                "n_cells": n_cells,
+            }
+
+    rows = []
+    for sample_name in sample_names:
+        sample_name = str(sample_name)
+        for count_bin in HASH_COUNT_BIN_LABELS:
+            cell = by_sample_and_bin.get((sample_name, count_bin))
+            if cell is None:
+                rows.append(
+                    {
+                        "sample_name": sample_name,
+                        "count_bin": count_bin,
+                        "fraction_passing": None,
+                        "n_cells": 0,
+                        "label": "·",
+                    }
+                )
+                continue
+
+            fraction_passing = cell["fraction_passing"]
+            n_cells = cell["n_cells"]
+            rows.append(
+                {
+                    "sample_name": sample_name,
+                    "count_bin": count_bin,
+                    "fraction_passing": fraction_passing,
+                    "n_cells": n_cells,
+                    "label": f"{fraction_passing * 100:.0f}% (n={n_cells})" if fraction_passing is not None else "·",
+                }
+            )
+
+    return rows
 
 
 def write_cell_hashing_table(qc, out):
@@ -208,7 +327,9 @@ def write_cell_hashing_table(qc, out):
 
     Returns:
         (dict): Dictionary of the hashing metrics for the dashboard hashing table.
-        (list[dict]): Summary statistics derived from the cell-level hashing metrics.
+        (list[dict]): Summary statistics derived from all cells.
+        (list[dict]): Summary statistics with low hash_umi_total cells removed.
+        (list[dict]): Per-bin sample summaries on filtered cells.
     """
 
     # Create a list of dictionaries.
@@ -261,6 +382,8 @@ def write_cell_hashing_table(qc, out):
 
     # Build sample-level summary statistics used in an extra dashboard table.
     hashing_summary = calculate_hashing_summary(df_hashing, sample_names=list(qc["hashing"].keys()))
+    hashing_summary_filt = calculate_hashing_summary_filtered(df_hashing, sample_names=list(qc["hashing"].keys()))
+    hashing_summary_bins = calculate_hashing_bin_summary(df_hashing, sample_names=list(qc["hashing"].keys()))
 
     # Transform into a dictionary for sci-dashboard.
     # Initialize the dictionary of sample_name and underlying hashing_name also a dictionary.
@@ -272,7 +395,7 @@ def write_cell_hashing_table(qc, out):
             dict_hashing[sample_name][hashing_name]["n_corrected"] = qc["hashing"][sample_name][hashing_name]["n_corrected"]
             dict_hashing[sample_name][hashing_name]["n_correct_upstream"] = qc["hashing"][sample_name][hashing_name]["n_correct_upstream"]
 
-    return dict_hashing, hashing_summary
+    return dict_hashing, hashing_summary, hashing_summary_filt, hashing_summary_bins
 
 
 def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
@@ -380,12 +503,18 @@ def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
 
     # region Write / import hashing statistics. --------------------------------------------------------------------------
     if "hashing" in qc:
-        dict_hashing, hashing_summary = write_cell_hashing_table(qc, path_hashing)
+        dict_hashing, hashing_summary, hashing_summary_filt, hashing_summary_bins = write_cell_hashing_table(qc, path_hashing)
         qc_json["hashing"] = dict_hashing
         qc_json["hashing_summary"] = hashing_summary
+        qc_json["hashing_summary_filt"] = hashing_summary_filt
+        qc_json["hashing_summary_bins"] = hashing_summary_bins
+        qc_json["hashing_summary_bin_labels"] = HASH_COUNT_BIN_LABELS
     else:
         qc_json["hashing"] = {}
         qc_json["hashing_summary"] = []
+        qc_json["hashing_summary_filt"] = []
+        qc_json["hashing_summary_bins"] = []
+        qc_json["hashing_summary_bin_labels"] = HASH_COUNT_BIN_LABELS
     # endregion ----------------------------------------------------------------------------------------------------------
 
     qc_json["benchmarks"] = get_benchmarks(path_benchmarks)

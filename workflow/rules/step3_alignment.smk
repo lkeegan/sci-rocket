@@ -6,7 +6,6 @@
 #   4. sambamba_index:                  Indexing BAM files.
 #############
 
-
 rule trim_fastp:
     input:
         R1=out("{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz"),
@@ -42,8 +41,16 @@ def get_star_solo_features():
     configured = config["settings"].get("star_solo_features", "").strip()
     return configured if configured else "GeneFull_Ex50pAS"
 
+def get_species_qc_pickles_for_index(species):
+    if config["species"][species]["star_index"]:
+        return []
+    experiments = sorted(samples_unique.query("species == @species")["experiment_name"].unique())
+    return [out(f"{experiment_name}/demux_reads/{experiment_name}_qc.pickle") for experiment_name in experiments]
+
 
 rule generate_index_STAR:
+    input:
+        qc=lambda w: get_species_qc_pickles_for_index(w.species),
     output:
         directory(out("resources/index_star/{species}")),
     log:
@@ -57,7 +64,8 @@ rule generate_index_STAR:
         fasta=lambda w: config["species"][w.species]["genome"],
         gtf=lambda w: config["species"][w.species]["genome_gtf"],
         star_index=lambda w: config["species"][w.species]["star_index"],
-        extra=config["settings"]["star_index"],
+        star_index_extra=config["settings"]["star_index"],
+        star_overhang_script=f"{workflow.basedir}/rules/scripts/demultiplexing/get_star_index_overhang.py",
     conda:
         "envs/sci-rocket.yaml",
     message: "Generating (or symlinking) STAR indexes."
@@ -67,7 +75,8 @@ rule generate_index_STAR:
         if [ -n "{params.star_index}" ]; then
             ln -s "$(realpath "{params.star_index}")" "{output}"
         else
-            STAR {params.extra} --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf} >& {log}
+            ARGS=$(python "{params.star_overhang_script}" --star-index-extra "{params.star_index_extra}" {input.qc})
+            STAR $ARGS --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf} >& {log}
         fi
         """
 

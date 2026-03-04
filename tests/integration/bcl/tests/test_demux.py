@@ -206,6 +206,7 @@ def test_qc_pickle_consistent_with_demux_outputs():
     assert qc["sample_success"]["zfish-hash"]["n_pairs_success"] == qc["n_pairs_success"]
     assert n_sample_r1 + qc["n_hashing"] == qc["n_pairs_success"]
     assert n_sample_r1 + n_discard_r1 + qc["n_hashing"] == qc["n_pairs"]
+    assert qc["max_r2_read_length"] == 84
 
 
 def test_qc_pickle_covers_all_samples_from_samplesheet():

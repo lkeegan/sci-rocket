@@ -58,6 +58,8 @@ def combine_pickle(pickle_dict, combined_dict):
                 else:
                     for index, count in pickle_dict["rt_barcode_counts"][plate].items():
                         combined_dict["rt_barcode_counts"][plate][index] = combined_dict["rt_barcode_counts"][plate].get(index, 0) + count
+        elif key == "max_r2_read_length":
+            combined_dict[key] = max(combined_dict.get(key, 0), pickle_dict[key])
 
         # Merge everything else.
         else:

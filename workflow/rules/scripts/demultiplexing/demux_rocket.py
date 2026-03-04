@@ -122,6 +122,7 @@ def init_qc(experiment_name: str, dict_barcodes: dict, samples: pd.DataFrame, di
     qc["n_pairs"] = 0  # Total number of initial read-pairs.
     qc["n_pairs_success"] = 0  # Total number of read-pairs with correct RT, p5, p7 and ligation barcodes.
     qc["n_pairs_failure"] = 0  # Total number of discarded read-pairs due to various reason.
+    qc["max_r2_read_length"] = 0  # Maximum observed R2 read length.
 
     qc["n_corrected_p5"] = 0  # Total number of read-pairs with 1bp mismatch in p5.
     qc["n_corrected_p7"] = 0  # Total number of read-pairs with 1bp mismatch in p7.
@@ -196,6 +197,7 @@ def update_qc(qc:dict, x:sciRecord):
 
     # Update the total number of read-pairs processed.
     qc["n_pairs"] += 1
+    qc["max_r2_read_length"] = max(qc["max_r2_read_length"], len(x.read2.sequence))
 
     # Update the number of read-pairs with correct barcodes.
     # Also count the hashing reads for this.

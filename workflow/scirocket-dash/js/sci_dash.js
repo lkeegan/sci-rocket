@@ -674,8 +674,47 @@ document.addEventListener("DOMContentLoaded", function () {
 // Table - Hashing summary.
 //--------------------------------------------
 
-function generate_hashing_summary_table(summaryRows) {
-  const table = document.getElementById("sample-hashing-summary-table");
+function insertFractionPassingCell(row, fractionPassing) {
+  const fractionCell = row.insertCell(-1);
+  if (fractionPassing == null) {
+    fractionCell.innerHTML = "NA";
+    return;
+  }
+
+  const fractionPassingPercent = Math.round(Number(fractionPassing) * 100);
+  let fractionPassingTextClass = "";
+  let fractionPassingBarClass = "";
+  if (fractionPassingPercent < 20) {
+    fractionPassingTextClass = "text-red";
+    fractionPassingBarClass = "bg-red";
+  } else if (fractionPassingPercent < 40) {
+    fractionPassingTextClass = "text-yellow";
+    fractionPassingBarClass = "bg-yellow";
+  }
+
+  const progress = createElement("div", "row align-items-center");
+  const col1 = createElement("div", `col-12 col-lg-auto ${fractionPassingTextClass}`, `${fractionPassingPercent}%`);
+  const col2 = createElement("div", "col");
+  const progress_bar = createElement("div", "progress");
+  progress_bar.style.width = "3rem";
+  progress_bar.style.height = "0.55rem";
+  const progress_bar_inner = createElement("div", `progress-bar ${fractionPassingBarClass}`);
+  progress_bar_inner.style.width = `${fractionPassingPercent}%`;
+  progress_bar_inner.setAttribute("role", "progressbar");
+  progress_bar_inner.setAttribute("aria-valuenow", fractionPassingPercent);
+  progress_bar_inner.setAttribute("aria-valuemin", "0");
+  progress_bar_inner.setAttribute("aria-valuemax", "100");
+  const span = createElement("span", "visually-hidden", `${fractionPassingPercent}%`);
+  progress_bar_inner.appendChild(span);
+  progress_bar.appendChild(progress_bar_inner);
+  col2.appendChild(progress_bar);
+  progress.appendChild(col1);
+  progress.appendChild(col2);
+  fractionCell.appendChild(progress);
+}
+
+function generate_hashing_summary_table(tableId, summaryRows) {
+  const table = document.getElementById(tableId);
   if (!table) return;
 
   table.className = "table card-table table-vcenter text-nowrap datatable tablesorter";
@@ -683,10 +722,12 @@ function generate_hashing_summary_table(summaryRows) {
       <thead>
         <tr>
           <th>Sample</th>
-          <th>Mean count</th>
-          <th>Count total</th>
+          <th>Mean hash count</th>
+          <th>Hash count total</th>
+          <th>Hash UMI total</th>
           <th>Median ratio</th>
           <th>Mean ratio</th>
+          <th>Total cells</th>
           <th>Cells passing<br><sub>(ratio >= 3)</sub></th>
           <th>Fraction passing</th>
         </tr>
@@ -695,51 +736,124 @@ function generate_hashing_summary_table(summaryRows) {
       </tbody>`;
 
   const tbody = table.querySelector("tbody");
+  const formatRatioValue = (value) => {
+    if (value == null) return "NA";
+    if (typeof value === "number" && !Number.isFinite(value)) {
+      return value > 0 ? "Inf" : "-Inf";
+    }
+    return roundToOne(value);
+  };
 
   for (const rowData of summaryRows) {
+    const meanHashCount = rowData.mean_hash_count;
+    const hashCountTotal = rowData.hash_count_total;
+    const hashUmiTotal = rowData.hash_umi_total;
+    const medianHashRatio = rowData.median_hash_ratio;
+    const meanHashRatio = rowData.mean_hash_ratio;
+    const totalCells = rowData.total_cells;
+
     const row = tbody.insertRow(-1);
     row.insertCell(0).innerHTML = rowData.sample_name ?? "";
-    row.insertCell(1).innerHTML = rowData.mean_count == null ? "NA" : roundToOne(rowData.mean_count);
-    row.insertCell(2).innerHTML = rowData.count_total == null ? "NA" : Intl.NumberFormat("en-US").format(rowData.count_total);
-    row.insertCell(3).innerHTML = rowData.median_ratio == null ? "NA" : roundToOne(rowData.median_ratio);
-    row.insertCell(4).innerHTML = rowData.mean_ratio == null ? "NA" : roundToOne(rowData.mean_ratio);
-    row.insertCell(5).innerHTML = rowData.cells_passing == null ? "NA" : Intl.NumberFormat("en-US").format(rowData.cells_passing);
-    const fractionCell = row.insertCell(6);
-    if (rowData.fraction_passing == null) {
-      fractionCell.innerHTML = "NA";
-    } else {
-      const fractionPassingPercent = Math.round(Number(rowData.fraction_passing) * 100);
-      let fractionPassingTextClass = "";
-      let fractionPassingBarClass = "";
-      if (fractionPassingPercent < 20) {
-        fractionPassingTextClass = "text-red";
-        fractionPassingBarClass = "bg-red";
-      } else if (fractionPassingPercent < 40) {
-        fractionPassingTextClass = "text-yellow";
-        fractionPassingBarClass = "bg-yellow";
-      }
+    row.insertCell(1).innerHTML = meanHashCount == null ? "NA" : roundToOne(meanHashCount);
+    row.insertCell(2).innerHTML = hashCountTotal == null ? "NA" : Intl.NumberFormat("en-US").format(hashCountTotal);
+    row.insertCell(3).innerHTML = hashUmiTotal == null ? "NA" : Intl.NumberFormat("en-US").format(hashUmiTotal);
+    row.insertCell(4).innerHTML = formatRatioValue(medianHashRatio);
+    row.insertCell(5).innerHTML = formatRatioValue(meanHashRatio);
+    row.insertCell(6).innerHTML = totalCells == null ? "NA" : Intl.NumberFormat("en-US").format(totalCells);
+    row.insertCell(7).innerHTML = rowData.cells_passing == null ? "NA" : Intl.NumberFormat("en-US").format(rowData.cells_passing);
+    insertFractionPassingCell(row, rowData.fraction_passing);
+  }
+}
 
-      const progress = createElement("div", "row align-items-center");
-      const col1 = createElement("div", `col-12 col-lg-auto ${fractionPassingTextClass}`, `${fractionPassingPercent}%`);
-      const col2 = createElement("div", "col");
-      const progress_bar = createElement("div", "progress");
-      progress_bar.style.width = "3rem";
-      progress_bar.style.height = "0.55rem";
-      const progress_bar_inner = createElement("div", `progress-bar ${fractionPassingBarClass}`);
-      progress_bar_inner.style.width = `${fractionPassingPercent}%`;
-      progress_bar_inner.setAttribute("role", "progressbar");
-      progress_bar_inner.setAttribute("aria-valuenow", fractionPassingPercent);
-      progress_bar_inner.setAttribute("aria-valuemin", "0");
-      progress_bar_inner.setAttribute("aria-valuemax", "100");
-      const span = createElement("span", "visually-hidden", `${fractionPassingPercent}%`);
-      progress_bar_inner.appendChild(span);
-      progress_bar.appendChild(progress_bar_inner);
-      col2.appendChild(progress_bar);
-      progress.appendChild(col1);
-      progress.appendChild(col2);
-      fractionCell.appendChild(progress);
+function generate_hashing_bins_heatmap(binRows, binLabels) {
+  const container = document.getElementById("chart-hashing-bins-heatmap");
+  if (!container) return;
+
+  if (typeof Plotly === "undefined") {
+    container.innerHTML = "<div style='text-align:center'><b>Heatmap library unavailable</b></div>";
+    return;
+  }
+
+  const xLabels = Array.isArray(binLabels) && binLabels.length > 0
+    ? binLabels
+    : [...new Set((binRows || []).map((row) => row.count_bin))];
+  const yLabels = [...new Set((binRows || []).map((row) => row.sample_name))];
+
+  if (xLabels.length === 0 || yLabels.length === 0) {
+    container.innerHTML = "<div style='text-align:center'><b>No bin data available</b></div>";
+    return;
+  }
+
+  const xIndexByLabel = Object.fromEntries(xLabels.map((label, idx) => [label, idx]));
+  const yIndexByLabel = Object.fromEntries(yLabels.map((label, idx) => [label, idx]));
+  const zMatrix = yLabels.map(() => xLabels.map(() => null));
+  const nCellMatrix = yLabels.map(() => xLabels.map(() => 0));
+
+  for (const row of (binRows || [])) {
+    if (!row || !(row.count_bin in xIndexByLabel) || !(row.sample_name in yIndexByLabel)) continue;
+    const xIdx = xIndexByLabel[row.count_bin];
+    const yIdx = yIndexByLabel[row.sample_name];
+    nCellMatrix[yIdx][xIdx] = Number(row.n_cells ?? 0);
+
+    if (row.n_cells > 0 && row.fraction_passing != null) {
+      zMatrix[yIdx][xIdx] = Number(row.fraction_passing) * 100;
     }
   }
+
+  const hasData = zMatrix.some((row) => row.some((value) => value != null && Number.isFinite(value)));
+  if (!hasData) {
+    container.innerHTML = "<div style='text-align:center'><b>No bin data available</b></div>";
+    return;
+  }
+
+  const trace = {
+    type: "heatmap",
+    x: xLabels,
+    y: yLabels,
+    z: zMatrix,
+    customdata: nCellMatrix,
+    colorscale: "Viridis",
+    zmin: 0,
+    zmax: 100,
+    colorbar: {
+      title: {
+        text: "Passing (%)",
+      },
+      ticksuffix: "%",
+    },
+    hovertemplate: "%{y} | %{x}<br>Passing: %{z:.1f}%<br>n=%{customdata}<extra></extra>",
+    hoverongaps: false,
+  };
+
+  const layout = {
+    autosize: true,
+    dragmode: false,
+    hovermode: "closest",
+    margin: { l: 120, r: 20, t: 20, b: 100 },
+    xaxis: {
+      tickangle: -45,
+      automargin: true,
+      title: { text: "Hash count bin" },
+      fixedrange: true,
+    },
+    yaxis: {
+      automargin: true,
+      title: { text: "Sample" },
+      fixedrange: true,
+    },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+  };
+
+  const config = {
+    responsive: true,
+    displayModeBar: false,
+    scrollZoom: false,
+    doubleClick: false,
+    displaylogo: false,
+  };
+
+  Plotly.react(container, [trace], layout, config);
 }
 
 // For each hashing barcode, generate a row in the table.
@@ -781,16 +895,34 @@ function generate_hashing_table(data) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  generate_hashing_summary_table(data.hashing_summary || []);
+  const binLabels = data.hashing_summary_bin_labels || [];
+
+  generate_hashing_summary_table("sample-hashing-summary-table", data.hashing_summary || []);
+  generate_hashing_summary_table("sample-hashing-summary-filt-table", data.hashing_summary_filt || []);
+  generate_hashing_bins_heatmap(data.hashing_summary_bins || [], binLabels);
   generate_hashing_table(data.hashing);
 
   $("#sample-hashing-summary-table").tablesorter({
+    sortList: [[1, 0]],
+  });
+  $("#sample-hashing-summary-filt-table").tablesorter({
     sortList: [[1, 0]],
   });
 
   $("#sample-hashing-table").tablesorter({
     sortList: [[0, 0]],
   });
+
+  // Plotly can be initialized while the Hashing tab is hidden; force a resize when shown.
+  const hashingTabToggle = document.querySelector('a[href="#tabs-hashing"]');
+  if (hashingTabToggle && typeof Plotly !== "undefined") {
+    hashingTabToggle.addEventListener("shown.bs.tab", function () {
+      const heatmap = document.getElementById("chart-hashing-bins-heatmap");
+      if (heatmap) {
+        Plotly.Plots.resize(heatmap);
+      }
+    });
+  }
 
 });
 

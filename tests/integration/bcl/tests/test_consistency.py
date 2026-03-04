@@ -35,6 +35,9 @@ def load_scidash_data(experiment: str) -> dict:
     "sample_success",
     "hashing",
     "hashing_summary",
+    "hashing_summary_filt",
+    "hashing_summary_bins",
+    "hashing_summary_bin_labels",
 ]
 )
 def test_output_consistent_between_experiments(experiment: str, field: str):

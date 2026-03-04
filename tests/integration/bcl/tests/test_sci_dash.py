@@ -31,15 +31,24 @@ def test_sci_dash_data():
 
     # Check hashing summary consistency against per-hash counts.
     assert "hashing_summary" in data
+    assert "hashing_summary_filt" in data
+    assert "hashing_summary_bins" in data
+    assert "hashing_summary_bin_labels" in data
     assert len(data["hashing_summary"]) == len(data["hashing"])
+    assert len(data["hashing_summary_filt"]) == len(data["hashing"])
     assert set(row["sample_name"] for row in data["hashing_summary"]) == set(data["hashing"].keys())
+    assert set(row["sample_name"] for row in data["hashing_summary_filt"]) == set(data["hashing"].keys())
     assert all("experiment_name" not in row for row in data["hashing_summary"])
+    assert all("experiment_name" not in row for row in data["hashing_summary_filt"])
 
     for row in data["hashing_summary"]:
         sample = row["sample_name"]
         sample_hash_total = sum(
             v["n_correct"] + v["n_corrected"] + v["n_correct_upstream"] for v in data["hashing"][sample].values()
         )
-        assert row["count_total"] == sample_hash_total
+        assert row["hash_count_total"] == sample_hash_total
+
+    expected_bin_rows = len(data["hashing"]) * len(data["hashing_summary_bin_labels"])
+    assert len(data["hashing_summary_bins"]) == expected_bin_rows
 
     assert data["rt_barcode_counts"]["P01"][0] == {'row': 'B', 'col': '1', 'frequency': 2048}

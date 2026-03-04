@@ -330,7 +330,7 @@
                       <!--Tab: Hashing-->
                       <div class="tab-pane" id="tabs-hashing">
                         <div class="container">
-                          <h4>Hashing summary statistics</h4>
+                          <h4>Hashing summary statistics (all cells)</h4>
                           <div class="row">
                             <div class="card">
                               <div class="card-body">
@@ -338,6 +338,22 @@
                                   <table class="table" id="sample-hashing-summary-table">
                                   </table>
                                 </div>
+                              </div>
+                            </div>
+                          </div>
+                          <br />
+                          <h4>Hashing summary statistics (filtered: hash UMI >= 5)</h4>
+                          <div class="row">
+                            <div class="card">
+                              <div class="card-body">
+                                <div class="subheader">Table: sample-level filtered summary</div>
+                                <div class="table-responsive">
+                                  <table class="table" id="sample-hashing-summary-filt-table">
+                                  </table>
+                                </div>
+                                <br />
+                                <div class="subheader">Heatmap: fraction passing (ratio >= 3, filtered: hash UMI >= 5)</div>
+                                <div class="chart-lg" id="chart-hashing-bins-heatmap"></div>
                               </div>
                             </div>
                           </div>
@@ -486,6 +502,9 @@
     <!-- Import chart.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@3.0.0/dist/chartjs-chart-matrix.min.js"></script>
+
+    <!-- Import Plotly for standard heatmap rendering -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
     <!-- Import anychart from CDN -->
     <script src="https://cdn.amcharts.com/lib/5/index.js"></script>

@@ -1,8 +1,10 @@
 import argparse
+import ast
 import json
 import os
 import pandas as pd
 import pickle
+import re
 import sys
 import pathlib
 
@@ -108,15 +110,87 @@ def resolve_solo_feature_paths(path_star, sample):
     )
 
 
+def _is_missing(value) -> bool:
+    if value is None:
+        return True
+    try:
+        return bool(pd.isna(value))
+    except TypeError:
+        return False
+
+
+def _parse_int_value(value):
+    if _is_missing(value):
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+
+    text = str(value).strip()
+    if text in {"", "-", "NA", "None", "nan"}:
+        return None
+
+    try:
+        parsed = ast.literal_eval(text)
+    except (ValueError, SyntaxError):
+        parsed = None
+
+    if isinstance(parsed, tuple) and len(parsed) == 1:
+        parsed = parsed[0]
+    if isinstance(parsed, (int, float)):
+        return int(parsed)
+    if isinstance(parsed, str):
+        text = parsed.strip()
+
+    match = re.search(r"-?\d+", text)
+    return int(match.group(0)) if match else None
+
+
+def _parse_mem_mb_from_resources(value):
+    if _is_missing(value):
+        return None
+
+    resources = None
+    if isinstance(value, dict):
+        resources = value
+    else:
+        text = str(value).strip()
+        if text in {"", "-", "NA", "None", "nan"}:
+            return None
+        try:
+            parsed = ast.literal_eval(text)
+        except (ValueError, SyntaxError):
+            parsed = None
+
+        if isinstance(parsed, dict):
+            resources = parsed
+        else:
+            match = re.search(r"mem_mb['\"]?\s*[:=]\s*([0-9]+)", text)
+            if match:
+                return int(match.group(1))
+            return None
+
+    return _parse_int_value(resources.get("mem_mb"))
+
+
 def get_benchmarks(path_benchmarks) -> list[dict]:
     frames = []
-    for path in sorted(pathlib.Path(path_benchmarks).glob("*.txt")) + sorted(pathlib.Path(path_benchmarks).parent.glob("*.txt")):
+    path_benchmarks = pathlib.Path(path_benchmarks)
+    for path in sorted(path_benchmarks.glob("*.txt")) + sorted(path_benchmarks.parent.glob("*.txt")):
         df = pd.read_csv(path, sep="\t")
         df.insert(0, "job", path.stem)
         frames.append(df)
     if not frames:
         return []
+
     df = pd.concat(frames, ignore_index=True, sort=False)
+    df["requested_mem_mb"] = None
+    df["requested_threads"] = None
+
+    if "resources" in df.columns:
+        df["requested_mem_mb"] = df["resources"].apply(_parse_mem_mb_from_resources)
+    if "threads" in df.columns:
+        df["requested_threads"] = df["threads"].apply(_parse_int_value)
+
     return df.to_dict('records')
 
 

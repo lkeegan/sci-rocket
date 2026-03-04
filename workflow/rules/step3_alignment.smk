@@ -6,6 +6,10 @@
 #   4. sambamba_index:                  Indexing BAM files.
 #############
 
+import math
+import pickle
+
+
 rule trim_fastp:
     input:
         R1=out("{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz"),
@@ -47,6 +51,35 @@ def get_species_qc_pickles_for_index(species):
     experiments = sorted(samples_unique.query("species == @species")["experiment_name"].unique())
     return [out(f"{experiment_name}/demux_reads/{experiment_name}_qc.pickle") for experiment_name in experiments]
 
+def get_star_align_mem_mb(wildcards, input, attempt=1):
+    # default memory requirement of 60 GB, sufficient for most samples with up to hundreds of millions of reads.
+    min_mem_mb = 60 * 1024
+    # for very large numbers (billions) of reads, the solo counting step in STARsolo dominates the memory usage.
+    # with the default STARsolo settings in the pipeline, each mapped read requires ~17 bytes.
+    # assuming 1 mapped read per input read and adding some buffer we require 20 bytes per read:
+    bytes_per_read = 20
+    # in case the step fails, we will increase the memory by a factor of 1.5 for each retry attempt:
+    retry_multiplier = 1.5
+    attempt = max(1, int(attempt))
+    configured = config["settings"].get("star_align_mem_mb", "")
+
+    if configured not in ("", None):
+        base_mem_mb = int(configured)
+        if base_mem_mb <= 0:
+            raise ValueError("settings.star_align_mem_mb must be > 0")
+    else:
+        try:
+            with open(input.demux_qc, "rb") as handle:
+                qc = pickle.load(handle)
+            n_reads = int(qc["sample_success"][wildcards.sample_name]["n_pairs_success"])
+        except (FileNotFoundError, KeyError, ValueError, TypeError, pickle.PickleError):
+            base_mem_mb = min_mem_mb
+        else:
+            estimated_mem_mb = math.ceil((n_reads * bytes_per_read) / (1024 * 1024))
+            base_mem_mb = max(min_mem_mb, estimated_mem_mb)
+
+    return math.ceil(base_mem_mb * (retry_multiplier ** (attempt - 1)))
+
 
 rule generate_index_STAR:
     input:
@@ -85,6 +118,7 @@ rule starSolo_align:
     input:
         R1=out("{experiment_name}/fastp/{sample_name}_R1.fastq.gz"),
         R2=out("{experiment_name}/fastp/{sample_name}_R2.fastq.gz"),
+        demux_qc=out("{experiment_name}/demux_reads/{experiment_name}_qc.pickle"),
         index=out("resources/index_star/{species}/"),
         whitelist_p7=out("{experiment_name}/demux_reads/{experiment_name}_whitelist_p7.txt"),
         whitelist_p5=out("{experiment_name}/demux_reads/{experiment_name}_whitelist_p5.txt"),
@@ -94,10 +128,8 @@ rule starSolo_align:
         bam=out("{experiment_name}/alignment/{sample_name}_{species}_Aligned.sortedByCoord.out.bam"),
         sj=out("{experiment_name}/alignment/{sample_name}_{species}_SJ.out.tab"),
         log1=out("{experiment_name}/alignment/{sample_name}_{species}_Log.final.out"),
-        log2=temp(out("{experiment_name}/alignment/{sample_name}_{species}_Log.out")),
-        log3=temp(
-            out("{experiment_name}/alignment/{sample_name}_{species}_Log.progress.out")
-        ),
+        log2=out("{experiment_name}/alignment/{sample_name}_{species}_Log.out"),
+        log3=out("{experiment_name}/alignment/{sample_name}_{species}_Log.progress.out"),
         dir_tmp=temp(
             directory(out("{experiment_name}/alignment/{sample_name}_{species}__STARtmp"))
         ),
@@ -108,7 +140,7 @@ rule starSolo_align:
         out("logs/step3_alignment/star_align_{experiment_name}_{sample_name}_{species}.log"),
     threads: 30
     resources:
-        mem_mb=1024 * 60,
+        mem_mb=get_star_align_mem_mb,
     benchmark:
         out("benchmarks/{experiment_name}/starSolo_align_{sample_name}_{species}.txt")
     params:

@@ -7,13 +7,12 @@ Please see the set-up instructions below for more information on how to install 
 
 ## Pre-requirements
 
-> There is currently no LSF support yet in latest snakemake (v8). For LSF clusters (e.g. DKFZ), we recommend using snakemake v7.32.4 instead.
-
-1. A conda system, e.g., [conda](https://docs.conda.io/en/latest/), [mamba](https://mamba.readthedocs.io/en/latest/) or [micromamba](https://micromamba.readthedocs.io/en/latest/)
+1. A conda system, e.g., [conda](https://conda-forge.org/download/)
 2. Snakemake and a cluster-specific Snakemake configuration for batch-job submission (see instructions below).
       * E.g., [LSF](https://github.com/Snakemake-Profiles/lsf) or [SLURM](https://github.com/Snakemake-Profiles/slurm)
 
-We make use of pre-defined environment(s) which houses all software dependencies (`workflow/envs/`). These are installed automatically by Snakemake when running the workflow (`--use-conda`).
+We make use of pre-defined environment(s) which houses all software dependencies (`workflow/rules/envs/`).
+These are installed automatically by Snakemake when running the workflow (`--use-conda`).
 
 ## Set-up
 
@@ -23,13 +22,13 @@ We make use of pre-defined environment(s) which houses all software dependencies
       git clone https://github.com/lauren-saunders-lab/sci-rocket
       ```
 
-2. Download and install snakemake (e.g. using conda or micromamba):
+2. Download and install snakemake using [conda](https://conda-forge.org/download/):
 
       ```bash
-      # This will install snakemake (7.32.4) + Python 3.11.7 into a new conda environment called 'snakemake'
-      micromamba create -c conda-forge -c bioconda -n snakemake snakemake==7.32.4 python==3.11.7 mamba
+      # This will install snakemake, Python and some required libraries into a new conda environment called 'snakemake'
+      conda create -c conda-forge -c bioconda -n snakemake snakemake python mamba pandas numpy
       # Switch to the 'snakemake' environment
-      micromamba activate snakemake
+      conda activate snakemake
       ```
 
 3. Run the workflow:
@@ -45,6 +44,8 @@ We make use of pre-defined environment(s) which houses all software dependencies
 > * `-p`: Print shell commands.
 > * `--notemp`: Do not remove files flagged as temporary.
 > * `--rerun-incomplete`: Rerun all jobs with missing output files.
+> * `--benchmark-extended`: Include requested resources/threads in benchmark files (useful for cluster environments).
+> * `--retries 2`: Retry failed jobs up to 2 times (useful for cluster environments).
 
 ## Configuration
 

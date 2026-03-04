@@ -6,14 +6,29 @@
 #   5. gather_demultiplexed_samples:        Combine the sample-specific fastq.gz files (from multiple parallel jobs).
 #############
 
+
+def get_fastq_split_parts():
+    n_parts = int(config["settings"]["scatter_fastq_split"])
+    if n_parts < 1:
+        raise ValueError("settings.scatter_fastq_split must be >= 1")
+    return n_parts
+
+
+def get_fastq_split_scatteritems():
+    n_parts = get_fastq_split_parts()
+    width = max(3, len(str(n_parts)))
+    return [f"{i:0{width}d}" for i in range(1, n_parts + 1)]
+
+
 # ---- Split R1 and R2 files into smaller files which will be handled in parallel. ----
 rule split_reads:
     input:
         out("{experiment_name}/raw_reads/Undetermined_S0_{read}_001.fastq.gz"),
     output:
         temp(
-            scatter.fastq_split(
-                out("{{experiment_name}}/raw_reads_split/{{read}}_{scatteritem}.fastq.gz")
+            expand(
+                out("{{experiment_name}}/raw_reads_split/{{read}}_{scatteritem}.fastq.gz"),
+                scatteritem=get_fastq_split_scatteritems(),
             )
         ),
     wildcard_constraints:
@@ -24,14 +39,22 @@ rule split_reads:
     benchmark:
         out("benchmarks/{experiment_name}/split_{read}.txt")
     params:
-        out_args=lambda w, output: " ".join(f"-o {path}" for path in output),
+        n_parts=get_fastq_split_parts(),
+        out_dir=out("{experiment_name}/raw_reads_split"),
     conda:
         "envs/sci-rocket.yaml",        
     message:
         "Generating multiple evenly-sized {wildcards.read} chunks ({wildcards.experiment_name})."
     shell:
-        """
-        fastqsplitter -i {input} {params.out_args} -t 1 -c 1
+        r"""
+        set -euo pipefail
+
+        seqkit split2 \
+          -p {params.n_parts} \
+          -j {threads} \
+          -O {params.out_dir:q} \
+          --by-part-prefix "{wildcards.read}_" \
+          {input:q}
         """
 
 # ---- Helper for explicit per-sample scatter outputs in demultiplex_fastq_split. ----
@@ -83,14 +106,38 @@ rule demultiplex_fastq_split:
 
 rule gather_demultiplexed_sequencing:
     input:
-        discard_R1=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_R1_discarded.fastq.gz")),
-        discard_R2=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_R2_discarded.fastq.gz")),
-        discard_log=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/log_{{experiment_name}}_discarded_reads.tsv.gz")),
-        qc_pickles=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_qc.pickle")),
-        whitelist_p7=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_p7.txt")),
-        whitelist_p5=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_p5.txt")),
-        whitelist_ligation=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_ligation.txt")),
-        whitelist_rt=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_rt.txt")),
+        discard_R1=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_R1_discarded.fastq.gz"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        discard_R2=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_R2_discarded.fastq.gz"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        discard_log=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/log_{{experiment_name}}_discarded_reads.tsv.gz"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        qc_pickles=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_qc.pickle"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        whitelist_p7=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_p7.txt"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        whitelist_p5=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_p5.txt"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        whitelist_ligation=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_ligation.txt"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        whitelist_rt=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{experiment_name}}_whitelist_rt.txt"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
     output:
         R1_discarded=out("{experiment_name}/demux_reads/{experiment_name}_R1_discarded.fastq.gz"),
         R2_discarded=out("{experiment_name}/demux_reads/{experiment_name}_R2_discarded.fastq.gz"),
@@ -108,7 +155,7 @@ rule gather_demultiplexed_sequencing:
     benchmark:
         out("benchmarks/{experiment_name}/gather_demultiplexed_sequencing.txt")
     params:
-        path_demux_scatter=lambda w: out(f"{w.experiment_name}/demux_reads_scatter/")
+        path_demux_scatter=out("{experiment_name}/demux_reads_scatter/"),
     conda:
         "envs/sci-rocket.yaml",
     message:
@@ -133,8 +180,14 @@ rule gather_demultiplexed_sequencing:
 
 rule gather_demultiplexed_samples:
     input:
-        R1_scatter=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{sample_name}}_R1.fastq.gz")),
-        R2_scatter=gather.fastq_split(out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{sample_name}}_R2.fastq.gz")),
+        R1_scatter=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{sample_name}}_R1.fastq.gz"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
+        R2_scatter=expand(
+            out("{{experiment_name}}/demux_reads_scatter/{scatteritem}/{{sample_name}}_R2.fastq.gz"),
+            scatteritem=get_fastq_split_scatteritems(),
+        ),
     output:
         R1=out("{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz"),
         R2=out("{experiment_name}/demux_reads/{sample_name}_R2.fastq.gz"),

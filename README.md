@@ -2,7 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Github issues](https://img.shields.io/github/issues/lauren-saunders-lab/snakemake-sciseq)](https://img.shields.io/github/issues/lauren-saunders-lab/sci-rocket)
 
-> **sci-rocket** is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow which performs processing of sci-RNA-Seq3 data, including sample demultiplexing and downstream alignment and UMI-counting using [STARSolo](https://github.com/alexdobin/STAR).
+> **sci-rocket** is a [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow which performs processing of sci-RNA-Seq3 data,
+> including sample demultiplexing and downstream alignment and UMI-counting using [STARSolo](https://github.com/alexdobin/STAR).
 
 ## Documentation
 

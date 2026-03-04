@@ -33,11 +33,6 @@ def out(p: str) -> str:
     return f"{dir_output}/{p.lstrip('/')}"
 
 
-# Scatter-gather settings.
-scattergather:
-    fastq_split=config["settings"]["scatter_fastq_split"],
-
-
 rule all:
     input:
         # Run sci-rocket demultiplexing pipeline.

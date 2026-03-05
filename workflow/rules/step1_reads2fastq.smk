@@ -4,14 +4,36 @@
 #   2. reads2fastq:                   Convert bcl to fastq with p5 and p7 indexes within the read name.
 #############
 
-from pathlib import Path
-
-
 def get_path(sequencing_name, experiment_name):
     """
     Return the path to the reads for a given sequencing run.
     """
     return samples_unique.query("sequencing_name == @sequencing_name & experiment_name == @experiment_name").path_reads.values[0]
+
+
+def get_sequencing_lanes():
+    """
+    Return optional globally configured lane IDs.
+    """
+    return preprocess.get_configured_sequencing_lanes(config)
+
+
+def get_fake_bcl_samplesheet():
+    """
+    Build fake BCL sample-sheet contents, with optional lane restriction.
+    """
+    lanes = get_sequencing_lanes()
+    rows = [f"{lane},fake,fake,NNNNNNNNNN,NNNNNNNNNN" for lane in lanes] if lanes else [",fake,fake,NNNNNNNNNN,NNNNNNNNNN"]
+    return "[DATA]\nLane,Sample_ID,Sample_Name,index,index2\n" + "\n".join(rows) + "\n"
+
+
+def get_fake_aviti_manifest():
+    """
+    Build fake AVITI run-manifest contents, with optional lane restriction.
+    """
+    lanes = get_sequencing_lanes()
+    lane_field = "+".join(lanes) if lanes else "1+2"
+    return f"[Samples]\nSampleName,Index1,Index2,Lane\nfake,AAAAAAAAAA,AAAAAAAAAA,{lane_field}\n"
 
 
 rule install_bases2fastq:
@@ -61,6 +83,9 @@ rule reads2fastq:
     params:
         path_out=out("{experiment_name}/raw_reads/{sequencing_name}"),
         extra=config["settings"]["bcl2fastq"],
+        lanes=lambda _: ",".join(get_sequencing_lanes() or []),
+        fake_bcl_samplesheet=lambda _: get_fake_bcl_samplesheet(),
+        fake_aviti_manifest=lambda _: get_fake_aviti_manifest(),
     conda:
         "envs/sci-rocket.yaml",
     message: "Converting reads to fastq with p5 and p7 indexes within the read name ({wildcards.experiment_name}: {wildcards.sequencing_name})."
@@ -72,7 +97,14 @@ rule reads2fastq:
         if [[ -f "{input.path}/RunInfo.xml" ]]; then
             echo "Found RunInfo.xml in {input.path}: treating input as BCL run folder."
             echo "Running bcl2fastq to convert to fastq.gz"
-            echo -e "[DATA]\nLane,Sample_ID,Sample_Name,index,index2\n,fake,fake,NNNNNNNNNN,NNNNNNNNNN" > "{params.path_out}/fake_bcl_sample_sheet.csv"
+            if [[ -n "{params.lanes}" ]]; then
+                echo "Restricting BCL conversion to lane(s): {params.lanes}"
+            else
+                echo "No lane restriction configured; using all lanes."
+            fi
+            cat > "{params.path_out}/fake_bcl_sample_sheet.csv" << 'EOF_BCL'
+{params.fake_bcl_samplesheet}
+EOF_BCL
             # 40 cores / 40GB RAM: 2GB/core needed according to Illumina bcl2fastq docs
             bcl2fastq \
             {params.extra} \
@@ -85,7 +117,14 @@ rule reads2fastq:
         elif [[ -d "{input.path}/BaseCalls" ]]; then
             echo "Found BaseCalls/ in {input.path} (and no RunInfo.xml): treating input as AVITI run folder"
             echo "Running Bases2Fastq to convert to fastq.gz, then using fastq-fix-i5 to reverse-complement i5 in R1 headers"
-            echo -e "[Samples]\nSampleName,Index1,Index2,Lane\nfake,AAAAAAAAAA,AAAAAAAAAA,1+2\n" > "{params.path_out}/fake_aviti_run_manifest.csv"
+            if [[ -n "{params.lanes}" ]]; then
+                echo "Restricting AVITI conversion to lane(s): {params.lanes}"
+            else
+                echo "No lane restriction configured; defaulting AVITI lane field to 1+2."
+            fi
+            cat > "{params.path_out}/fake_aviti_run_manifest.csv" << 'EOF_AVITI'
+{params.fake_aviti_manifest}
+EOF_AVITI
             # 8 cores / 48GB RAM: 6GB/core needed according to https://docs.elembio.io/docs/bases2fastq/setup/#memory-and-performance
             {input.bases2fastq_exe} \
             --run-manifest "{params.path_out}/fake_aviti_run_manifest.csv" \

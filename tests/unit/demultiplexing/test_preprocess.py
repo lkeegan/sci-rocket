@@ -114,3 +114,34 @@ def test_get_samples_ignores_comment_lines(test_config: dict):
 
     assert len(samples) == 2
     assert set(samples["sample_name"]) == {"sample1", "sample2"}
+
+
+@pytest.mark.parametrize(
+    "lane_config,expected",
+    [
+        (None, None),
+        ("", None),
+        ("2", ["2"]),
+        ("1,2", ["1", "2"]),
+        ("1, 2, 03", ["1", "2", "3"]),
+    ],
+)
+def test_parse_sequencing_lanes_valid(lane_config, expected):
+    assert preprocess.parse_sequencing_lanes(lane_config) == expected
+
+
+@pytest.mark.parametrize("lane_config", ["A", "0", "1+B", "1,,2", [1, 2], 2, {"x": 1}])
+def test_parse_sequencing_lanes_invalid(lane_config):
+    with pytest.raises(ValueError):
+        preprocess.parse_sequencing_lanes(lane_config)
+
+
+def test_get_configured_sequencing_lanes_global_setting():
+    config = {"settings": {"sequencing_lanes": "2,3"}}
+    assert preprocess.get_configured_sequencing_lanes(config) == ["2", "3"]
+
+
+def test_get_configured_sequencing_lanes_dict_is_invalid():
+    config = {"settings": {"sequencing_lanes": {"default": "2", "run2": "3+4"}}}
+    with pytest.raises(ValueError):
+        preprocess.get_configured_sequencing_lanes(config)

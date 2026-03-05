@@ -1,7 +1,59 @@
 import re
 import logging
 import pandas as pd
-import numpy as np
+
+def parse_sequencing_lanes(lane_config) -> list[str] | None:
+    """
+    Parse a lane configuration value into a normalized list of lane IDs.
+
+    Accepted format:
+        - str (e.g., "2" or "1,2,3")
+
+    Returns:
+        list[str] | None: Unique lane IDs in input order, or None if unset/blank.
+    """
+    if lane_config is None:
+        return None
+
+    if not isinstance(lane_config, str):
+        raise ValueError(
+            f"Invalid sequencing lane config type: {type(lane_config).__name__}. "
+            "Expected a comma-delimited string, e.g. '1,2'."
+        )
+
+    lane_config = lane_config.strip()
+    if not lane_config:
+        return None
+
+    lanes = []
+    for token in lane_config.split(","):
+        lane = token.strip()
+        if not lane:
+            raise ValueError(
+                "Invalid sequencing lanes format: empty lane token found. "
+                "Expected a comma-delimited list such as '1,2'."
+            )
+        if not lane.isdigit() or int(lane) < 1:
+            raise ValueError(
+                f"Invalid sequencing lane '{lane}'. Expected positive integer lane IDs."
+            )
+        normalized_lane = str(int(lane))
+        if normalized_lane not in lanes:
+            lanes.append(normalized_lane)
+
+    return lanes or None
+
+
+def get_configured_sequencing_lanes(config: dict) -> list[str] | None:
+    """
+    Return globally configured lane IDs from config.settings.
+
+    Supports:
+        settings.sequencing_lanes: "2" / "1,2"
+    """
+    settings = config.get("settings", {})
+    lane_config = settings.get("sequencing_lanes", None)
+    return parse_sequencing_lanes(lane_config)
 
 def init_logger():
     """

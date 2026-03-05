@@ -8,6 +8,7 @@ See [example sample-sheet](https://github.com/lauren-saunders-lab/sci-rocket/blo
   * Multiple paths can be specified separated by semicolons (e.g. `path_reads1;path_reads2`), if the sample is sequenced across multiple runs.
   * If the path contains BCL files, `bcl2fastq` will be run internally to generate the fastq files.
   * If the path contains AVITI files, `Bases2Fastq` and `fastq-fix-i5` will be run internally to generate the fastq files in Illumina (p5 RC) format.
+  * If only selected sequencing lanes are available, lane restriction can be configured in `config.yaml` via `settings.sequencing_lanes` using a comma-delimited list (e.g. `1,2`).
   * If the path contains fastq.gz files, these must be in Illumina (p5 RC) format.
 * **experiment_name**: Experiment name (e.g., experimentXYZ), used to associate all downstream files and underlying samples.
 * **p5**: PCR (p5) index(es) (e.g. A01:H01, or **column(s)** of a 96-well index plate) used to identify the sample during demultiplexing.

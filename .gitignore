@@ -165,5 +165,6 @@ workflow/examples/test_output/
 
 *.snakemake
 
+tests/integration/node_modules/
 tests/integration/data
 tests/integration/*/output

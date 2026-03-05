@@ -293,7 +293,7 @@ def get_samples(config: dict) -> pd.DataFrame:
     """
 
     # Load sample sheet.
-    samples = pd.read_csv(config["path_samples"], sep="\t", dtype=str)
+    samples = pd.read_csv(config["path_samples"], sep="\t", dtype=str, comment="#")
 
     # Load barcodes file.
     barcodes = pd.read_csv(config["path_barcodes"], sep="\t", dtype=str)

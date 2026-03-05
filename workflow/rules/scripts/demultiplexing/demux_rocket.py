@@ -625,7 +625,7 @@ def main(arguments):
     log = init_logger()
 
     # Open sample-sheet.
-    samples = pd.read_csv(args.samples, sep="\t", dtype=str)
+    samples = pd.read_csv(args.samples, sep="\t", dtype=str, comment="#")
 
     # Open barcode-sheet.
     barcodes = pd.read_csv(args.barcodes, sep="\t", dtype=str)

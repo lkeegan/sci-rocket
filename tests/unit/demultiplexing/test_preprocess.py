@@ -94,3 +94,23 @@ def test_get_samples_path_reads_with_multiple_paths(test_config: dict):
 
     samples = preprocess.get_samples(test_config)
     pd.testing.assert_frame_equal(samples.reset_index(drop=True), expected_samples, check_dtype=False)
+
+
+def test_get_samples_ignores_comment_lines(test_config: dict):
+    pathlib.Path(test_config["path_samples"]).write_text(
+        "\n".join(
+            [
+                "# comment line should be ignored",
+                "path_reads\texperiment_name\tp5\tp7\trt\tsample_name\tspecies\tn_expected_cells",
+                "/path/r1\texp\tA02:H02\tH01:H12\tP01-A01:P01-D12\tsample1\tmouse\t10000",
+                "# second comment should also be ignored",
+                "/path/r2\texp\tA02:H02\tH01:H12\tP01-A01:P01-D12\tsample2\tmouse\t10000",
+            ]
+        )
+        + "\n"
+    )
+
+    samples = preprocess.get_samples(test_config)
+
+    assert len(samples) == 2
+    assert set(samples["sample_name"]) == {"sample1", "sample2"}

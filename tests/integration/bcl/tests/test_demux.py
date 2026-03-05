@@ -3,6 +3,7 @@ import csv
 import gzip
 import pickle
 from collections import Counter
+import pandas as pd
 import pytest
 
 
@@ -156,9 +157,8 @@ def test_sample_fastqs_have_paired_reads_and_r1_length_48nt():
     test_root = Path(__file__).parent.parent
     demux_path = test_root / "output" / "bcl_one_run" / "demux_reads"
     samplesheet_path = test_root / "samplesheet.tsv"
-
-    with open(samplesheet_path, "r", encoding="utf-8", newline="") as handle:
-        sample_names = sorted({row["sample_name"] for row in csv.DictReader(handle, delimiter="\t")})
+    samples_df = pd.read_csv(samplesheet_path, sep="\t", dtype=str, comment="#")
+    sample_names = sorted(samples_df["sample_name"].dropna().unique())
 
     for sample_name in sample_names:
         path_r1 = demux_path / f"{sample_name}_R1.fastq.gz"
@@ -217,8 +217,8 @@ def test_qc_pickle_covers_all_samples_from_samplesheet():
 
     assert path_qc.exists()
 
-    with open(samplesheet_path, "r", encoding="utf-8", newline="") as handle:
-        sample_names = {row["sample_name"] for row in csv.DictReader(handle, delimiter="\t")}
+    samples_df = pd.read_csv(samplesheet_path, sep="\t", dtype=str, comment="#")
+    sample_names = set(samples_df["sample_name"].dropna().unique())
     with open(path_qc, "rb") as handle:
         qc = pickle.load(handle)
 

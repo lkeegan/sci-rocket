@@ -46,6 +46,7 @@ rule install_bases2fastq:
     shell:
         r"""
         exec > "{log}" 2>&1
+        set -euo pipefail
         mkdir -p $(dirname {output.bases2fastq_exe})
         if [ -n "{params.bases2fastq_exe}" ] && [ -x "{params.bases2fastq_exe}" ]; then
             echo "Using user-provided Bases2Fastq executable: {params.bases2fastq_exe}"
@@ -87,11 +88,11 @@ rule reads2fastq:
         fake_bcl_samplesheet=lambda _: get_fake_bcl_samplesheet(),
         fake_aviti_manifest=lambda _: get_fake_aviti_manifest(),
     conda:
-        "envs/sci-rocket.yaml",
-    message: "Converting reads to fastq with p5 and p7 indexes within the read name ({wildcards.experiment_name}: {wildcards.sequencing_name})."
+        "../envs/sci-rocket.yaml",
     shell:
         r"""
         exec > "{log}" 2>&1
+        set -euo pipefail
         mkdir -p {output.tmp}
         
         if [[ -f "{input.path}/RunInfo.xml" ]]; then
@@ -183,12 +184,12 @@ rule merge_sequencing_runs:
         mem_mb=1024 * 2,
     params:
         total_sequencing_runs=lambda w: len(get_sequencing_runs(w.experiment_name)),
-    message: "Merge sequencing runs ({wildcards.experiment_name})."
     benchmark:
         out("benchmarks/{experiment_name}/merge_sequencing_runs.txt")
     shell:
         """
         exec > "{log}" 2>&1
+        set -euo pipefail
         # If only one sequencing run, then just hardlink it (and remove the original).
         if [ {params.total_sequencing_runs} -eq 1 ]; then
             echo "Only one sequencing run found, creating hardlinks."

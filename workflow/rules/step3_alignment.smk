@@ -29,11 +29,13 @@ rule trim_fastp:
     params:
         extra=config["settings"]["fastp"],
     conda:
-        "envs/sci-rocket.yaml",
-    message:
-        "Trimming adapters and low-quality reads with fastp ({wildcards.sample_name})."
+        "../envs/sci-rocket.yaml",
     shell:
-        "fastp {params.extra} --html {output.html} --json {output.json} --thread {threads} --in1 {input.R1} --in2 {input.R2} --out1 {output.R1} --out2 {output.R2} >& {log}"
+        """
+        exec > "{log}" 2>&1
+        set -euo pipefail
+        fastp {params.extra} --html {output.html} --json {output.json} --thread {threads} --in1 {input.R1} --in2 {input.R2} --out1 {output.R1} --out2 {output.R2}
+        """
 
 
 # Retrieve the expected no. of cells for a given (demultiplexed) sample.
@@ -98,18 +100,19 @@ rule generate_index_STAR:
         gtf=lambda w: config["species"][w.species]["genome_gtf"],
         star_index=lambda w: config["species"][w.species]["star_index"],
         star_index_extra=config["settings"]["star_index"],
-        star_overhang_script=f"{workflow.basedir}/rules/scripts/demultiplexing/get_star_index_overhang.py",
+        star_overhang_script=f"{workflow.basedir}/scripts/demultiplexing/get_star_index_overhang.py",
     conda:
-        "envs/sci-rocket.yaml",
-    message: "Generating (or symlinking) STAR indexes."
+        "../envs/sci-rocket.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # Check if STAR_index is given. If not, generate it.
         if [ -n "{params.star_index}" ]; then
             ln -s "$(realpath "{params.star_index}")" "{output}"
         else
             ARGS=$(python "{params.star_overhang_script}" --star-index-extra "{params.star_index_extra}" {input.qc})
-            STAR $ARGS --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf} >& {log}
+            STAR $ARGS --runThreadN {threads} --runMode genomeGenerate --genomeFastaFiles {params.fasta} --genomeDir {output} --sjdbGTFfile {params.gtf}
         fi
         """
 
@@ -150,11 +153,11 @@ rule starSolo_align:
         n_expected_cells=lambda w: get_expected_cells(w),
         solo_features=lambda w: get_star_solo_features(),
     conda:
-        "envs/sci-rocket.yaml",
-    message:
-        "Aligning reads with STARSolo ({wildcards.sample_name})."
+        "../envs/sci-rocket.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         STAR {params.extra} --genomeDir {input.index} --runThreadN {threads} \
         --readFilesIn {input.R2} {input.R1} --readFilesCommand zcat \
         --soloFeatures {params.solo_features} \
@@ -166,10 +169,10 @@ rule starSolo_align:
         --soloCellFilter CellRanger2.2 {params.n_expected_cells} 0.99 10 \
         --outTmpDir {output.dir_tmp} \
         --outTmpKeep all \
-        --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {params.sampleName} >& {log}
+        --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {params.sampleName}
 
         # Convert STARSolo barcodes to the barcode naming scheme for all configured features.
-        python3 {workflow.basedir}/rules/scripts/demultiplexing/STARSolo_convertBarcodes.py --solo_out_dir {output.dir_solo} --features {params.solo_features} --barcodes {params.path_barcodes}
+        python3 {workflow.basedir}/scripts/demultiplexing/STARSolo_convertBarcodes.py --solo_out_dir {output.dir_solo} --features {params.solo_features} --barcodes {params.path_barcodes}
         """
 
 
@@ -186,8 +189,10 @@ rule sambamba_index:
     benchmark:
         out("benchmarks/{experiment_name}/sambamba_index_{sample_name}_{species}.txt")
     conda:
-        "envs/sci-rocket.yaml",
-    message:
-        "Indexing BAM ({wildcards.sample_name})."
+        "../envs/sci-rocket.yaml",
     shell:
-        "sambamba index -t {threads} {input} {output} >& {log}"
+        """
+        exec > "{log}" 2>&1
+        set -euo pipefail
+        sambamba index -t {threads} {input} {output}
+        """

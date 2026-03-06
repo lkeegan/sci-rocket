@@ -36,17 +36,18 @@ rule split_reads:
     threads: 5
     resources:
         mem_mb=1024 * 10,
+    log:
+        out("logs/step2_demultiplexing_reads/split_{experiment_name}_{read}.log"),
     benchmark:
         out("benchmarks/{experiment_name}/split_{read}.txt")
     params:
         n_parts=get_fastq_split_parts(),
         out_dir=out("{experiment_name}/raw_reads_split"),
     conda:
-        "envs/sci-rocket.yaml",        
-    message:
-        "Generating multiple evenly-sized {wildcards.read} chunks ({wildcards.experiment_name})."
+        "../envs/sci-rocket.yaml",        
     shell:
         r"""
+        exec > "{log}" 2>&1
         set -euo pipefail
 
         seqkit split2 \
@@ -90,17 +91,17 @@ rule demultiplex_fastq_split:
         path_barcodes=config["path_barcodes"],
         path_out=out("{experiment_name}/demux_reads_scatter/{scatteritem}"),
     conda:
-        "envs/sci-rocket.yaml",
-    message:
-        "Demultiplexing the scattered .fastq.gz files ({wildcards.experiment_name})."
+        "../envs/sci-rocket.yaml",
     shell:
         """
-        python {workflow.basedir}/rules/scripts/demultiplexing/demux_rocket.py \
+        exec > "{log}" 2>&1
+        set -euo pipefail
+        python {workflow.basedir}/scripts/demultiplexing/demux_rocket.py \
         --experiment_name {wildcards.experiment_name} \
         --samples {params.path_samples} \
         --barcodes {params.path_barcodes} \
         --r1 {input.R1} --r2 {input.R2} \
-        --out {params.path_out} &> {log}
+        --out {params.path_out}
         """
 
 
@@ -157,13 +158,13 @@ rule gather_demultiplexed_sequencing:
     params:
         path_demux_scatter=out("{experiment_name}/demux_reads_scatter/"),
     conda:
-        "envs/sci-rocket.yaml",
-    message:
-        "Combining the discarded and whitelist files ({wildcards.experiment_name})."
+        "../envs/sci-rocket.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # Combine pickles.
-        python {workflow.basedir}/rules/scripts/demultiplexing/demux_gather.py --path_demux_scatter {params.path_demux_scatter} --path_out {output.qc}
+        python {workflow.basedir}/scripts/demultiplexing/demux_gather.py --path_demux_scatter {params.path_demux_scatter} --path_out {output.qc}
 
         # Combine the sequencing-specific R1/R2 discarded reads and logs.
         cat {input.discard_R1} > {output.R1_discarded}
@@ -191,15 +192,17 @@ rule gather_demultiplexed_samples:
     output:
         R1=out("{experiment_name}/demux_reads/{sample_name}_R1.fastq.gz"),
         R2=out("{experiment_name}/demux_reads/{sample_name}_R2.fastq.gz"),
+    log:
+        out("logs/step2_demultiplexing_reads/gather_demultiplexed_samples_{experiment_name}_{sample_name}.log"),
     threads: 1
     resources:
         mem_mb=1024 * 10,
     benchmark:
         out("benchmarks/{experiment_name}/gather_demultiplexed_samples_{sample_name}.txt")
-    message:
-        "Combining the sample-specific fastq.gz files ({wildcards.experiment_name})."
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # Combine files.
         cat {input.R1_scatter} > {output.R1}
         cat {input.R2_scatter} > {output.R2}

@@ -17,6 +17,8 @@ rule sci_dash:
     output:
         dash_folder=directory(out("{experiment_name}/sci-dash/")),
         dash_json=out("{experiment_name}/sci-dash/js/qc_data.js"),
+    log:
+        out("logs/step4_dashboard/sci_dash_{experiment_name}.log"),
     threads: 1
     resources:
         mem_mb=1024 * 10,
@@ -28,16 +30,16 @@ rule sci_dash:
         metrics_hashing=out("{experiment_name}/hashing/{experiment_name}_hashing_metrics.tsv"),
         benchmarks_folder=out("benchmarks/{experiment_name}"),
     conda:
-        "envs/sci-rocket.yaml",
-    message:
-        "Generating sci-dashboard report ({wildcards.experiment_name})."
+        "../envs/sci-rocket.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # Generate the sci-dashboard report.
         cp -R {workflow.basedir}/scirocket-dash/* {output.dash_folder}
 
         # Combine the sample-specific QC and STARSolo metrics.
-        python3 {workflow.basedir}/rules/scripts/demultiplexing/demux_dash.py \
+        python3 {workflow.basedir}/scripts/demultiplexing/demux_dash.py \
         --path_out {output.dash_json} \
         --path_pickle {input.qc} \
         --path_star {params.path_star} \

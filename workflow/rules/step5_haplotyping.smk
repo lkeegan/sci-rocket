@@ -27,12 +27,13 @@ rule mgp_download:
     params:
         path_mgp=config["path_mgp"],
     conda:
-        "envs/sci-haplotyping.yaml",
-    message:
-        "Downloading the MGP database (~30GB). This will take a moment."
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # If the MGP database (path_mgp) is already downloaded, symlink it.
+        # Otherwise, download from EBI (~30GB). This will take a moment.
         if [[ ! -z {params.path_mgp} ]]; then
             touch {output.mgp_snp}
             touch {output.mgp_indel}
@@ -40,11 +41,11 @@ rule mgp_download:
             touch {output.mgp_indel_idx}
             touch {output.mgp_combined}
         else
-            wget -O {output.mgp_snp} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_snps.vcf.gz >& {log}
-            wget -O {output.mgp_indel} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_indels.vcf.gz >& {log}
+            wget -O {output.mgp_snp} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_snps.vcf.gz
+            wget -O {output.mgp_indel} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_indels.vcf.gz
 
-            wget -O {output.mgp_snp_idx} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_snps.vcf.gz.csi >& {log}
-            wget -O {output.mgp_indel_idx} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_indels.vcf.gz.csi >& {log}
+            wget -O {output.mgp_snp_idx} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_snps.vcf.gz.csi
+            wget -O {output.mgp_indel_idx} https://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_indels.vcf.gz.csi
 
             # Combine SNP and InDels.
             bcftools concat --threads {threads} -a {output.mgp_snp} {output.mgp_indel} -O z -o {output.mgp_combined}
@@ -58,15 +59,17 @@ rule mgp_chr_prefix:
     output:
         vcf=out("resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz"),
         tbi=out("resources/MGP/mgp_REL2021_snps_indels_chr_prefix.vcf.gz.tbi"),
+    log:
+        out("logs/haplotyping/mgp_chr_prefix.log"),
     threads: 8
     conda:
-        "envs/sci-haplotyping.yaml",
+        "../envs/sci-haplotyping.yaml",
     params:
         path_mgp=config["path_mgp"],
-    message:
-        "Adding chr-prefix to the MGP database: {input}"
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         if [ ! -z {params.path_mgp} ]; then
             ln -s {params.path_mgp} {output.vcf}
             ln -s {params.path_mgp}.tbi {output.tbi}
@@ -91,34 +94,31 @@ rule generate_hybrid_vcf:
     benchmark:
         out("benchmarks/generate_hybrid_vcf_{strain1}_{strain2}.txt")
     conda:
-        "envs/sci-haplotyping.yaml",
-    message:
-        "Generating cross-hybrid VCF file: {wildcards.strain1} x {wildcards.strain2}"
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # If strain1 or strain2 is B6, only use the other strain.
         if [[ "{wildcards.strain1}" == "B6" ]]; then
-            python3 {workflow.basedir}/rules/scripts/haplotyping/generate_crosshybrid.py \
+            python3 {workflow.basedir}/scripts/haplotyping/generate_crosshybrid.py \
                 --haplotype {input.mgp} \
                 --h1 {wildcards.strain2} \
                 --out {output.vcf} \
-                --highconfidence \
-                >& {log}
+                --highconfidence
         elif [[ "{wildcards.strain2}" == "B6" ]]; then
-            python3 {workflow.basedir}/rules/scripts/haplotyping/generate_crosshybrid.py \
+            python3 {workflow.basedir}/scripts/haplotyping/generate_crosshybrid.py \
                 --haplotype {input.mgp} \
                 --h1 {wildcards.strain1} \
                 --out {output.vcf} \
-                --highconfidence \
-                >& {log}
+                --highconfidence
         else
-            python3 {workflow.basedir}/rules/scripts/haplotyping/generate_crosshybrid.py \
+            python3 {workflow.basedir}/scripts/haplotyping/generate_crosshybrid.py \
                 --haplotype {input.mgp} \
                 --h1 {wildcards.strain1} \
                 --h2 {wildcards.strain2} \
                 --out {output.vcf} \
-                --highconfidence \
-                >& {log}
+                --highconfidence
         fi
         """
 
@@ -129,17 +129,19 @@ rule normalize_hybrid_vcf:
     output:
         vcf=temp(out("resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz")),
         idx=temp(out("resources/MGP/{strain1}_{strain2}_hybrid_norm.vcf.gz.tbi")),
+    log:
+        out("logs/haplotyping/normalize_hybrid_vcf_{strain1}_{strain2}.log"),
     threads: 1
     params:
         fasta=lambda w: config["species"]["mouse"]["genome"],
     benchmark:
         out("benchmarks/normalize_hybrid_vcf_{strain1}_{strain2}.txt")
     conda:
-        "envs/sci-haplotyping.yaml",
-    message:
-        "Normalizing cross-hybrid VCF file: {wildcards.strain1} x {wildcards.strain2}"
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         bcftools norm  -f {params.fasta} {input.vcf} -m -any | \
         bcftools view -I --trim-alt-alleles | \
         bcftools view --min-alleles 2 | \
@@ -153,16 +155,20 @@ rule download_repeatmasker:
     output:
         repeatmasker=temp(out("resources/MGP/rmsk.bed")),
         rmsk=temp(out("resources/MGP/rmsk.txt.gz")),
+    log:
+        out("logs/haplotyping/download_repeatmasker.log"),
     threads: 1
     resources:
         mem_mb=1024 * 2,
     params:
         url_repeatmasker=config["url_repeatmasker"],
     conda:
-        "envs/sci-haplotyping.yaml",
-    message: "Downloading Repeatmasker file (GRCm39)."
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
+        # Download Repeatmasker simple repeats for GRCm39.
         wget -O {output.rmsk} {params.url_repeatmasker}
 
         # Convert to BED format.
@@ -178,11 +184,15 @@ rule filter_repeatmasker:
     output:
         vcf=out("resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz"),
         idx=out("resources/MGP/{strain1}_{strain2}_hybrid_norm_SNPs_norepeats.vcf.gz.tbi"),
+    log:
+        out("logs/haplotyping/filter_repeatmasker_{strain1}_{strain2}.log"),
     threads: 1
     conda:
-        "envs/sci-haplotyping.yaml",
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         bcftools view --types snps -T ^{input.repeatmasker} -o {output.vcf} -O z {input.vcf}
         bcftools index -t {output.vcf}
         """
@@ -205,13 +215,13 @@ rule run_haplotag:
     params:
         fasta=lambda w: config["species"]["mouse"]["genome"],
     conda:
-        "envs/sci-haplotyping.yaml",
-    message:
-        "Tagging (HP tag) SNP-overlapping reads with haplotype-origin: {input.bam}."
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         # Haplotype tagging.
-        whatshap haplotag --regions chrX --sample F1 --ignore-read-groups -o {output.bam} --reference {params.fasta} --output-threads {threads} {input.vcf} {input.bam} >& {log}
+        whatshap haplotag --regions chrX --sample F1 --ignore-read-groups -o {output.bam} --reference {params.fasta} --output-threads {threads} {input.vcf} {input.bam}
 
         # Index BAM file.
         sambamba index -t {threads} {output.bam}
@@ -225,15 +235,19 @@ rule haplotype_split_h1:
     output:
         bam=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h1.bam")),
         bai=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h1.bam.bai")),
+    log:
+        out("logs/haplotyping/haplotype_split_h1_{experiment_name}_{sample_name}_{strain1}_{strain2}.log"),
     threads: 10
     resources:
         mem_mb=1024 * 10,
     benchmark:
         out("benchmarks/{experiment_name}/haplotype_split_h1_{strain1}_{strain2}_{sample_name}.txt")
     conda:
-        "envs/sci-haplotyping.yaml",
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         sambamba view -t {threads} -h -f bam -F "[HP]==1" {input.bam} > {output.bam}
         sambamba index -t {threads} {output.bam}
         """
@@ -246,15 +260,19 @@ rule haplotype_split_h2:
     output:
         bam=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h2.bam")),
         bai=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_h2.bam.bai")),
+    log:
+        out("logs/haplotyping/haplotype_split_h2_{experiment_name}_{sample_name}_{strain1}_{strain2}.log"),
     threads: 10
     resources:
         mem_mb=1024 * 10,
     benchmark:
         out("benchmarks/{experiment_name}/haplotype_split_h2_{strain1}_{strain2}_{sample_name}.txt")
     conda:
-        "envs/sci-haplotyping.yaml",
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         sambamba view -t {threads} -h -f bam -F "[HP]==2" {input.bam} > {output.bam}
         sambamba index -t {threads} {output.bam}
         """
@@ -267,15 +285,19 @@ rule haplotype_split_ua:
     output:
         bam=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_ua.bam")),
         bai=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_ua.bam.bai")),
+    log:
+        out("logs/haplotyping/haplotype_split_ua_{experiment_name}_{sample_name}_{strain1}_{strain2}.log"),
     threads: 10
     resources:
         mem_mb=1024 * 10,
     benchmark:
         out("benchmarks/{experiment_name}/haplotype_split_ua_{strain1}_{strain2}_{sample_name}.txt")
     conda:
-        "envs/sci-haplotyping.yaml",
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         sambamba view -t {threads} -h -f bam -F "[HP]==null" {input.bam} > {output.bam}
         sambamba index -t {threads} {output.bam}
         """
@@ -287,13 +309,17 @@ rule filter_barcodes_reads:
     output:
         bam=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam")),
         bai=temp(out("{experiment_name}/haplotyping/{sample_name}_mouse_Aligned.sortedByCoord.out.haplotagged_{strain1}_{strain2}.chrX_{type}_fixed.bam.bai"))
+    log:
+        out("logs/haplotyping/filter_barcodes_reads_{experiment_name}_{sample_name}_{strain1}_{strain2}_{type}.log"),
     threads: 2
     resources:
         mem_mb=1024 * 10,
     conda:
-        "envs/sci-haplotyping.yaml",
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
+        exec > "{log}" 2>&1
+        set -euo pipefail
         samtools view -h {input.bam} | grep -E "@|UR:Z:[ATCG]" | grep -E "@|CR:Z:[ATCG]" | grep -E "@|GX:Z:[A-Z]" | samtools view -bS -h > {output.bam}
         sambamba index -t {threads} {output.bam}
         """
@@ -312,12 +338,12 @@ rule count_haplotagged_reads:
     benchmark:
         out("benchmarks/{experiment_name}/count_haplotagged_reads_{strain1}_{strain2}_{sample_name}_{type}.txt")
     conda:
-        "envs/sci-haplotyping.yaml",
-    message:
-        "Counting haplotagged reads in {input.bam}."
+        "../envs/sci-haplotyping.yaml",
     shell:
         """
-        umi_tools count --per-gene --extract-umi-method=tag --gene-tag=GX --cell-tag=CR --umi-tag=UR --per-cell -I {input.bam} -S {output.counts} >& {log}
+        exec > "{log}" 2>&1
+        set -euo pipefail
+        umi_tools count --per-gene --extract-umi-method=tag --gene-tag=GX --cell-tag=CR --umi-tag=UR --per-cell -I {input.bam} -S {output.counts}
         """
 
 
@@ -338,12 +364,12 @@ rule join_counts:
     params:
         path_barcodes=config["path_barcodes"],
     conda:
-        "envs/sci-haplotyping.yaml",
-    message:
-        "Retrieving counts from {input.counts_h1}, {input.counts_h2} and {input.counts_ua}."
+        "../envs/sci-haplotyping.yaml",
     shell:
         r"""
-        python3 {workflow.basedir}/rules/scripts/haplotyping/join_counts.py \
+        exec > "{log}" 2>&1
+        set -euo pipefail
+        python3 {workflow.basedir}/scripts/haplotyping/join_counts.py \
             --h1 {input.counts_h1} \
             --h2 {input.counts_h2} \
             --ua {input.counts_ua} \

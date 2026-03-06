@@ -11,7 +11,7 @@ Please see the set-up instructions below for more information on how to install 
 2. Snakemake and a cluster-specific Snakemake configuration for batch-job submission (see instructions below).
       * E.g., [LSF](https://github.com/Snakemake-Profiles/lsf) or [SLURM](https://github.com/Snakemake-Profiles/slurm)
 
-We make use of pre-defined environment(s) which houses all software dependencies (`workflow/rules/envs/`).
+We make use of pre-defined environment(s) which houses all software dependencies (`workflow/envs/`).
 These are installed automatically by Snakemake when running the workflow (`--use-conda`).
 
 ## Set-up
@@ -26,7 +26,7 @@ These are installed automatically by Snakemake when running the workflow (`--use
 
       ```bash
       # This will install snakemake, Python and some required libraries into a new conda environment called 'snakemake'
-      conda create -c conda-forge -c bioconda -n snakemake snakemake python mamba pandas numpy
+      conda create -c conda-forge -c bioconda -n snakemake snakemake snakemake-executor-plugin-slurm python mamba pandas numpy
       # Switch to the 'snakemake' environment
       conda activate snakemake
       ```

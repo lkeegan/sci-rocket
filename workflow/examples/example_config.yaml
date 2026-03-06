@@ -52,6 +52,10 @@ settings:
   star: "--soloMultiMappers EM --outSAMmultNmax 1 --outSAMstrandField intronMotif --outFilterScoreMinOverLread 0.33 --outFilterMatchNminOverLread 0.33 --outSAMunmapped Within --outSAMattributes NH HI AS nM NM MD jM jI MC ch XS CR UR GX GN sM"
   # STARSolo feature set to request (space-separated values, passed to --soloFeatures).
   star_solo_features: "GeneFull_Ex50pAS"
+  # Optional fixed memory override for STARSolo alignment in MB.
+  # If empty, memory is estimated from read counts (~20 bytes/read, minimum 60GB).
+  # On retry attempts, requested memory increases by 50% each time (run snakemake with --retries > 0).
+  star_align_mem_mb: ""
   # Path to bases2fastq executable (if not provided sci-rocket will download it).
   bases2fastq_exe: ""
 

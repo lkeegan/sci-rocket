@@ -942,6 +942,8 @@ function generate_benchmarks_table(benchmarks) {
       <thead>
         <tr>
           <th>Job</th>
+          <th>Requested RAM<br><sub>(gb)</sub></th>
+          <th>Requested Cores</th>
           <th>Time<br><sub>(seconds)</sub></th>
           <th>Time<br><sub>(h:m:s)</sub></th>
           <th>Max RAM<br><sub>(gb)</sub></th>
@@ -959,7 +961,7 @@ function generate_benchmarks_table(benchmarks) {
   if (!Array.isArray(benchmarks) || benchmarks.length === 0) {
     const row = tbody.insertRow(-1);
     const cell = row.insertCell(0);
-    cell.colSpan = 7;
+    cell.colSpan = 9;
     cell.style.textAlign = "center";
     cell.innerHTML = "<b>No benchmark data available</b>";
     return;
@@ -980,6 +982,10 @@ function generate_benchmarks_table(benchmarks) {
 
     // Job name
     row.insertCell(-1).textContent = b.job ?? "N/A";
+
+    // Requested resources
+    row.insertCell(-1).textContent = fmt_number(b.requested_mem_mb, 2, 1024);
+    row.insertCell(-1).textContent = fmt_number(b.requested_threads, 0);
 
     // Time (seconds)
     row.insertCell(-1).textContent = fmt_number(b.s, 0);
@@ -1003,7 +1009,7 @@ document.addEventListener("DOMContentLoaded", function () {
   generate_benchmarks_table(data.benchmarks);
 
   $("#benchmarks-table").tablesorter({
-    sortList: [[1, 1]],  // default: seconds descending
+    sortList: [[3, 1]],  // default: seconds descending
   });
 });
 

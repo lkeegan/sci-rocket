@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 
-from workflow.rules.scripts.demultiplexing.demux_dash import (
+from workflow.scripts.demultiplexing.demux_dash import (
     HASH_COUNT_BIN_LABELS,
     calculate_hashing_bin_summary,
     calculate_hashing_summary,

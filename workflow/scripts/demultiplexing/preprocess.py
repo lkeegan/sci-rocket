@@ -1,6 +1,48 @@
 import re
 import logging
+from pathlib import Path
 import pandas as pd
+
+
+def validate_config_paths(config: dict):
+    """
+    Validate filesystem paths referenced by the workflow config.
+
+    Args:
+        config (dict): Imported config.
+
+    Raises:
+        ValueError: If one or more configured paths are missing or invalid.
+    """
+    issues = []
+
+    if not Path(config["path_samples"]).is_file():
+        issues.append(f"path_samples does not exist or is not a file: {config['path_samples']}")
+
+    if not Path(config["path_barcodes"]).is_file():
+        issues.append(f"path_barcodes does not exist or is not a file: {config['path_barcodes']}")
+
+    for species_name, species_cfg in config["species"].items():
+        genome = species_cfg["genome"]
+        genome_gtf = species_cfg["genome_gtf"]
+        star_index = species_cfg.get("star_index", "")
+
+        if not Path(genome).is_file():
+            issues.append(
+                f"species.{species_name}.genome does not exist or is not a file: {genome}"
+            )
+
+        if not Path(genome_gtf).is_file():
+            issues.append(
+                f"species.{species_name}.genome_gtf does not exist or is not a file: {genome_gtf}"
+            )
+
+        if star_index and not Path(star_index).exists():
+            issues.append(f"species.{species_name}.star_index does not exist: {star_index}")
+
+    if issues:
+        raise ValueError("Config path validation failed:\n- " + "\n- ".join(issues))
+
 
 def parse_sequencing_lanes(lane_config) -> list[str] | None:
     """
@@ -162,7 +204,7 @@ def retrieve_barcodes(log: logging.Logger, requested_barcodes: pd.Series, availa
 
 def sanity_samples(log, samples, barcodes, config):
     """
-    Checks the provided sample sheet for sanity and inconsistensies with the supplied config.
+    Checks the provided sample sheet for sanity and inconsistencies with the supplied config.
 
     Args:
         log (logging.Logger): Logger object.
@@ -180,7 +222,7 @@ def sanity_samples(log, samples, barcodes, config):
         return False
 
     # Check if the sample sheet contains the required columns.
-    required_columns = set(["experiment_name", "p5", "p7", "rt", "sample_name", "species", "n_expected_cells"])
+    required_columns = {"experiment_name", "p5", "p7", "rt", "sample_name", "species", "n_expected_cells"}
     if not required_columns.issubset(samples.columns):
         log.error("Sanity check (Sample sheet) - Missing required column(s): {}".format(", ".join(required_columns.difference(samples.columns))))
         return False
@@ -218,7 +260,7 @@ def sanity_samples(log, samples, barcodes, config):
 
     # endregion -------------------------------------------------------------------------------------
 
-    # region Sanity of hash heets -------------------------------------------------------------------
+    # region Sanity of hash sheets -------------------------------------------------------------------
 
     # For samples which have a designated hashing sheet, check sanity of hashing sheet.
     if "hashing" in samples.columns:
@@ -261,13 +303,13 @@ def sanity_barcodes(log, barcodes):
         return False
 
     # Check if the barcodes file contains the required columns.
-    required_columns = set(["type", "barcode", "sequence"])
+    required_columns = {"type", "barcode", "sequence"}
     if not set(required_columns).issubset(barcodes.columns):
         log.error("Sanity check (Barcodes) - Barcodes file is missing required column(s): {}".format(", ".join(required_columns.difference(barcodes.columns))))
         return False
 
     # Check if all barcode types are defined.
-    required_columns = set(["rt", "p5", "p7", "ligation"])
+    required_columns = {"rt", "p5", "p7", "ligation"}
     if not set(required_columns).issubset(barcodes["type"].unique()):
         log.error("Sanity check (Barcodes) - Barcodes file is missing barcode type(s): {}".format(", ".join(required_columns.difference(barcodes["type"].unique()))))
         return False

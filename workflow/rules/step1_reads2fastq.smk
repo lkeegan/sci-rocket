@@ -170,34 +170,37 @@ def get_sequencing_runs(experiment_name):
     """Return a list of sequencing runs."""
     return samples_unique.query("experiment_name == @experiment_name").sequencing_name.unique().tolist()
 
+
 rule merge_sequencing_runs:
     input:
-        R1=lambda w: expand(out("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R1_001.fastq.gz"), experiment_name=w.experiment_name, sequencing_name=get_sequencing_runs(w.experiment_name)),
-        R2=lambda w: expand(out("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_R2_001.fastq.gz"), experiment_name=w.experiment_name, sequencing_name=get_sequencing_runs(w.experiment_name)),
+        fastqs=lambda w: expand(
+            out("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_{read}_001.fastq.gz"),
+            experiment_name=w.experiment_name,
+            sequencing_name=get_sequencing_runs(w.experiment_name),
+            read=w.read,
+        ),
     output:
-        R1=out("{experiment_name}/raw_reads/Undetermined_S0_R1_001.fastq.gz"),
-        R2=out("{experiment_name}/raw_reads/Undetermined_S0_R2_001.fastq.gz"),
+        out("{experiment_name}/raw_reads/Undetermined_S0_{read}_001.fastq.gz"),
     log:
-        out("logs/step1_reads2fastq/merge_sequencing_runs_{experiment_name}.log"),
+        out("logs/step1_reads2fastq/merge_sequencing_runs_{experiment_name}_{read}.log"),
     threads: 1
     resources:
         mem_mb=1024 * 2,
     params:
         total_sequencing_runs=lambda w: len(get_sequencing_runs(w.experiment_name)),
+    wildcard_constraints:
+        read="R1|R2",
     benchmark:
-        out("benchmarks/{experiment_name}/merge_sequencing_runs.txt")
+        out("benchmarks/{experiment_name}/merge_sequencing_runs_{read}.txt")
     shell:
         """
         exec > "{log}" 2>&1
         set -euo pipefail
-        # If only one sequencing run, then just hardlink it (and remove the original).
         if [ {params.total_sequencing_runs} -eq 1 ]; then
             echo "Only one sequencing run found, creating hardlinks."
-            ln {input.R1} {output.R1}
-            ln {input.R2} {output.R2}
+            ln {input.fastqs} {output}
         else
             echo "Multiple sequencing runs found, concatenating fastq.gz files."
-            cat {input.R1} > {output.R1}
-            cat {input.R2} > {output.R2}
+            cat {input.fastqs} > {output}
         fi
         """

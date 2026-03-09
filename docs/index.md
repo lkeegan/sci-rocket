@@ -7,9 +7,11 @@ Please see the set-up instructions below for more information on how to install 
 
 ## Pre-requirements
 
-1. A conda system, e.g., [conda](https://conda-forge.org/download/)
+1. A conda system, e.g., <a href="https://docs.conda.io/en/latest/" target="_blank" rel="noopener">conda</a>
 2. Snakemake and a cluster-specific Snakemake configuration for batch-job submission (see instructions below).
-      * E.g., [LSF](https://github.com/Snakemake-Profiles/lsf) or [SLURM](https://github.com/Snakemake-Profiles/slurm)
+      * E.g., <a href="https://github.com/Snakemake-Profiles/lsf" target="_blank" rel="noopener">LSF</a> or <a href="https://github.com/Snakemake-Profiles/slurm" target="_blank" rel="noopener">SLURM</a>
+      * see our examples for the config profiles for [LSF](config_lsf.md) and [SLURM](config_slurm.md)
+
 
 We make use of pre-defined environment(s) which houses all software dependencies (`workflow/envs/`).
 These are installed automatically by Snakemake when running the workflow (`--use-conda`).
@@ -27,6 +29,15 @@ These are installed automatically by Snakemake when running the workflow (`--use
       ```bash
       # This will install snakemake, Python and some required libraries into a new conda environment called 'snakemake'
       conda create -c conda-forge -c bioconda -n snakemake snakemake snakemake-executor-plugin-slurm python mamba pandas numpy
+      # Switch to the 'snakemake' environment
+      conda activate snakemake
+      ```
+
+Alternatively you can run our setup-snakemake-env.sh script:
+
+      ```bash
+      # This will use micromamba to install snakemake (7.32.4) + Python 3.11.7 into a new conda environment called 'snakemake'
+      ./ setup-snakemake-env.sh conda
       # Switch to the 'snakemake' environment
       conda activate snakemake
       ```
@@ -49,6 +60,6 @@ These are installed automatically by Snakemake when running the workflow (`--use
 
 ## Configuration
 
-The workflow requires a configuration file (`config.yaml`) which can be copied from the [example configuration file](https://github.com/lauren-saunders-lab/sci-rocket/blob/main/workflow/examples/example_config.yaml) and adjusted to your needs.
+The workflow requires a configuration file (`config.yaml`) which can be copied from the <a href="https://github.com/odomlab2/sci-rocket/blob/main/workflow/examples/example_config.yaml" target="_blank" rel="noopener">example configuration file</a> and adjusted to your needs.
 
 Within the configuration file, the [sample-sheet](overview_files.md) (`path_samples`) needs to be specified. This file contains the sample names and paths to the raw sequencing data (BCL or FASTQ).

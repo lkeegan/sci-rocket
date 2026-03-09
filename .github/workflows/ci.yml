@@ -7,6 +7,13 @@ on:
     branches: [ main, dev ]
 
 jobs:
+  test_unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/ci-setup
+      - run: pytest tests/unit -vvv
+
   test_bcl:
     runs-on: ubuntu-latest
     steps:
@@ -70,5 +77,5 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install mkdocs-material 
+      - run: pip install mkdocs-material mkdocs-gen-files json-schema-for-humans
       - run: mkdocs gh-deploy --force

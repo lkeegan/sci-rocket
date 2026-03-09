@@ -1,4 +1,4 @@
-from workflow.rules.scripts.demultiplexing.STARSolo_convertBarcodes import convert_solo_dir
+from workflow.scripts.demultiplexing.STARSolo_convertBarcodes import convert_solo_dir
 
 
 def test_convert_solo_dir_converts_multiple_features(tmp_path):

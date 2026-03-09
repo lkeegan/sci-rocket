@@ -1,11 +1,6 @@
 # Set min. snakemake version for compatability.
 snakemake.utils.min_version("7.32.4")
 
-
-# Skeleton config, parameters will be overwritten by user-defined config file.
-configfile: f"{workflow.basedir}/examples/example_config.yaml"
-
-
 include: "rules/common.smk"
 
 

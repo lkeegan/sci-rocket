@@ -53,9 +53,9 @@ settings:
   # STARSolo feature set to request (space-separated values, passed to --soloFeatures).
   star_solo_features: "GeneFull_Ex50pAS"
   # Optional fixed memory override for STARSolo alignment in MB.
-  # If empty, memory is estimated from read counts (~20 bytes/read, minimum 60GB).
+  # If unset, memory is estimated from read counts (~20 bytes/read, minimum 60GB).
   # On retry attempts, requested memory increases by 50% each time (run snakemake with --retries > 0).
-  star_align_mem_mb: ""
+  star_align_mem_mb: 131072
   # Path to bases2fastq executable (if not provided sci-rocket will download it).
   bases2fastq_exe: ""
 

@@ -3,6 +3,12 @@ import sys
 sys.path.append(f"{workflow.basedir}/scripts/demultiplexing")
 import preprocess
 
+# Validate that config is valid according to the schema
+snakemake.utils.validate(config, schema=f"{workflow.basedir}/schemas/config.schema.yaml")
+
+# Validate that all paths in config exist and are files/directories as expected.
+preprocess.validate_config_paths(config)
+
 # Extract unique samples and perform sanity checks on sample sheet and barcodes
 samples_unique = preprocess.get_samples(config)
 

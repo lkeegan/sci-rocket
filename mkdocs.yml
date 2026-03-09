@@ -1,6 +1,13 @@
 site_name: sci-rocket
 repo_url: https://github.com/lauren-saunders-lab/sci-rocket
 repo_name: lauren-saunders-lab/sci-rocket
+use_directory_urls: false
+nav:
+  - Home: index.md
+  - Sample-Sheet and Barcodes: overview_files.md
+  - Methodology: overview_methodology.md
+  - LSF Profile: config_lsf.md
+  - Config Reference: config_reference.md
 theme:
   name: material
   logo: assets/logo.svg
@@ -27,3 +34,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/scripts/generate_config_reference.py

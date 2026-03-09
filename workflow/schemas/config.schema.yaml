@@ -1,0 +1,181 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: "sci-rocket configuration"
+description: "Configuration schema for the sci-rocket Snakemake workflow."
+type: object
+additionalProperties: false
+required:
+  - path_samples
+  - path_barcodes
+  - dir_output
+  - species
+properties:
+  path_samples:
+    title: "Sample Sheet Path"
+    description: "Path to the sample sheet TSV. Species values in this file must match keys under config.species."
+    examples:
+      - "samplesheet.tsv"
+      - "/data/project/samplesheet.tsv"
+    type: string
+    minLength: 1
+  path_barcodes:
+    title: "Barcode Table Path"
+    description: "Path to the barcode TSV used for demultiplexing (requires barcode types rt, p5, p7, and ligation)."
+    examples:
+      - "barcodes.tsv"
+      - "/data/project/barcodes.tsv"
+    type: string
+    minLength: 1
+  dir_output:
+    title: "Output Directory"
+    description: "Base output directory for all workflow results."
+    examples:
+      - "output"
+      - "/scratch/user/sci-rocket-output"
+    type: string
+    minLength: 1
+  species:
+    title: "Species References"
+    description: "Map of species names to reference files used by STAR/STARsolo. Species names must match the sample sheet."
+    examples:
+      - mouse:
+          genome: "/refs/mm39.fa"
+          genome_gtf: "/refs/mm39.gtf"
+          star_index: "/refs/star/mm39"
+    type: object
+    minProperties: 1
+    additionalProperties:
+      $ref: "#/definitions/species_entry"
+  settings:
+    title: "Tool Settings"
+    description: "Optional tool and runtime settings. Omitted keys use schema defaults documented per field."
+    examples:
+      - scatter_fastq_split: 10
+        sequencing_lanes: "1,2"
+        star_solo_features: "GeneFull_Ex50pAS"
+    type: object
+    default: {}
+    additionalProperties: false
+    properties:
+      scatter_fastq_split:
+        title: "FASTQ Scatter Parts"
+        description: "Number of chunks to split each R1/R2 FASTQ into for parallel demultiplexing. Default: 10."
+        examples:
+          - 10
+          - 4
+        type: integer
+        minimum: 1
+        default: 10
+      bcl2fastq:
+        title: "bcl2fastq Extra Arguments"
+        description: "Additional command-line options passed to bcl2fastq when input is a BCL run folder (RunInfo.xml present). Ignored for AVITI/FASTQ inputs."
+        examples:
+          - "--barcode-mismatches 1 --no-lane-splitting"
+          - ""
+        type: string
+        default: "--barcode-mismatches 1 --ignore-missing-positions --ignore-missing-controls --ignore-missing-filter --ignore-missing-bcls --no-lane-splitting --minimum-trimmed-read-length 15 --mask-short-adapter-reads 15"
+      sequencing_lanes:
+        title: "Sequencing Lane Filter"
+        description: "Optional lane restriction as comma-separated positive integers. If empty, BCL conversion uses all lanes; AVITI conversion defaults to lane field 1+2."
+        examples:
+          - ""
+          - "1"
+          - "1,2,3"
+        type: string
+        pattern: "^$|^[1-9][0-9]*(\\+[1-9][0-9]*)*(,[1-9][0-9]*(\\+[1-9][0-9]*)*)*$"
+        default: ""
+      fastp:
+        title: "fastp Extra Arguments"
+        description: "Additional command-line options passed to fastp during trimming."
+        examples:
+          - "--detect_adapter_for_pe --length_required 10"
+          - ""
+        type: string
+        default: "--detect_adapter_for_pe --qualified_quality_phred 15 --dont_eval_duplication --length_required 10"
+      star_index:
+        title: "STAR Index Generation Arguments"
+        description: "Additional command-line options passed to STAR genomeGenerate. If empty, sci-rocket automatically sets --sjdbOverhang <max R2 read length - 1> from demultiplexing QC."
+        examples:
+          - ""
+          - "--sjdbOverhang 90"
+        type: string
+        default: ""
+      star:
+        title: "STAR/STARsolo Extra Arguments"
+        description: "Additional command-line options passed to STAR during STARsolo alignment."
+        examples:
+          - "--soloMultiMappers EM --outSAMmultNmax 1"
+          - ""
+        type: string
+        default: "--soloMultiMappers EM --outSAMmultNmax 1 --outSAMstrandField intronMotif --outFilterScoreMinOverLread 0.33 --outFilterMatchNminOverLread 0.33 --outSAMunmapped Within --outSAMattributes NH HI AS nM NM MD jM jI MC ch XS CR UR GX GN sM"
+      star_solo_features:
+        title: "STARsolo Features"
+        description: "Space-separated STARsolo features passed to --soloFeatures. Default/fallback: GeneFull_Ex50pAS."
+        examples:
+          - "GeneFull_Ex50pAS"
+          - "Gene Velocyto"
+        type: string
+        default: "GeneFull_Ex50pAS"
+      star_align_mem_mb:
+        title: "STARsolo Memory Override (MB)"
+        description: "Optional fixed memory request in MB. If unset, memory is estimated from demultiplexed read counts (~20 bytes/read, minimum 60 GB) and increases by 50% on each retry attempt."
+        examples:
+          - 131072
+        type: integer
+        minimum: 1
+      bases2fastq_exe:
+        title: "bases2fastq Executable Path"
+        description: "Path to a local bases2fastq executable. If empty, sci-rocket uses bases2fastq on PATH when available, otherwise downloads the latest release."
+        examples:
+          - ""
+          - "/opt/bases2fastq/bin/bases2fastq"
+        type: string
+        default: ""
+  path_mgp:
+    title: "MGP VCF Path"
+    description: "Optional path to a pre-downloaded chr-prefixed MGP VCF for haplotyping. If empty, the workflow downloads and prepares MGP REL2021 SNP/Indel data."
+    examples:
+      - ""
+      - "/data/mgp/mgp_REL2021_snps_indels_chr_prefix.vcf.gz"
+    type: string
+    default: ""
+  url_repeatmasker:
+    title: "RepeatMasker URL"
+    description: "URL used to download RepeatMasker annotations for haplotyping (used in the optional haplotyping branch)."
+    examples:
+      - "http://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/rmsk.txt.gz"
+    type: string
+    default: "http://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/rmsk.txt.gz"
+definitions:
+  species_entry:
+    title: "Species Reference Entry"
+    description: "Reference files for one species key under config.species."
+    examples:
+      - genome: "/refs/mm39.fa"
+        genome_gtf: "/refs/mm39.gtf"
+        star_index: ""
+    type: object
+    additionalProperties: false
+    required:
+      - genome
+      - genome_gtf
+    properties:
+      genome:
+        title: "Genome FASTA"
+        description: "Path to the genome FASTA used by STAR."
+        examples:
+          - "/refs/mm39.fa"
+        type: string
+      genome_gtf:
+        title: "Genome GTF"
+        description: "Path to the annotation GTF used by STAR."
+        examples:
+          - "/refs/mm39.gtf"
+        type: string
+      star_index:
+        title: "Prebuilt STAR Index"
+        description: "Optional path to a prebuilt STAR index directory for this species. If empty, sci-rocket generates an index under <dir_output>/resources/index_star/<species> using genome/genome_gtf and settings.star_index."
+        examples:
+          - ""
+          - "/refs/star/mm39"
+        type: string
+        default: ""

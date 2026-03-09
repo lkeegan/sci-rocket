@@ -1,4 +1,4 @@
-from workflow.rules.scripts.demultiplexing.demux_gather import combine_pickle
+from workflow.scripts.demultiplexing.demux_gather import combine_pickle
 
 
 def test_combine_pickle_keeps_max_r2_read_length():

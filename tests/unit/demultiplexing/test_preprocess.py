@@ -1,6 +1,6 @@
 import pytest
 import pathlib
-import workflow.rules.scripts.demultiplexing.preprocess as preprocess
+import workflow.scripts.demultiplexing.preprocess as preprocess
 import pandas as pd
 
 

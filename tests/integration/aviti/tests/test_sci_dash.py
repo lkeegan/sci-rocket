@@ -3,10 +3,15 @@ from pathlib import Path
 
 def test_sci_dash_data():
     data_path = Path(__file__).parent.parent / "output" / "fastq_from_aviti_one_run" / "sci-dash" / "js" / "qc_data.js"
+    umap_path = Path(__file__).parent.parent / "output" / "fastq_from_aviti_one_run" / "sci-dash" / "js" / "umap_data.js"
     assert data_path.exists()
+    assert umap_path.exists()
     with open(data_path, "r") as f:
         json_data = f.read().split("var data = ")[1]
         data = json.loads(json_data)
+    with open(umap_path, "r") as f:
+        json_umap = f.read().split("var umapData = ")[1]
+        umap_data = json.loads(json_umap)
     assert data["experiment_name"] == "fastq_from_aviti_one_run"
     assert data["n_pairs"] == 100000
     assert data["n_pairs_success"] == 19255
@@ -36,6 +41,8 @@ def test_sci_dash_data():
 
     assert "ZAe-10hpf-28" in data["sample_success"]
     assert "ZAe-14hpf-28" in data["sample_success"]
+    assert data["sample_success"]["ZAe-10hpf-28"]["starsolo_feature"] == "GeneFull_Ex50pAS"
+    assert data["sample_success"]["ZAe-14hpf-28"]["starsolo_feature"] == "GeneFull_Ex50pAS"
 
     assert "ZAe-10hpf-28" in data["hashing"]
     assert "ZAe-14hpf-28" in data["hashing"]
@@ -72,3 +79,19 @@ def test_sci_dash_data():
     assert data["rt_barcode_counts"]["P02"][0] == {'row': 'H', 'col': '3', 'frequency': 655}
     assert data["rt_barcode_counts"]["P02"][1] == {'row': 'F', 'col': '5', 'frequency': 645}
     assert data["rt_barcode_counts"]["P02"][2] == {'row': 'A', 'col': '5', 'frequency': 624}
+
+    assert umap_data["default_color_key"] == "log1p_n_genes_by_counts"
+    assert set(umap_data["samples"]) == {"ZAe-10hpf-28", "ZAe-14hpf-28"}
+    for sample_name, sample in umap_data["samples"].items():
+        assert sample["status"] == "ok", sample_name
+        assert sample["feature"] == "GeneFull_Ex50pAS"
+        assert sample["message"] == ""
+        assert sample["n_cells_plot"] > 0
+        assert len(sample["x"]) == len(sample["y"]) == sample["n_cells_plot"]
+        assert sample["n_cells_input"] >= sample["n_cells_plot"]
+        assert set(sample["metrics"]) == {
+            "log1p_n_genes_by_counts",
+            "log1p_total_counts",
+            "pct_counts_mt",
+        }
+        assert all(len(values) == sample["n_cells_plot"] for values in sample["metrics"].values())

@@ -8,6 +8,11 @@ import re
 import sys
 import pathlib
 
+try:
+    from .starsolo_paths import resolve_solo_feature_paths
+except ImportError:
+    from starsolo_paths import resolve_solo_feature_paths
+
 HASH_RATIO_PASSING_THRESHOLD = 3.0
 HASH_UMI_FILTER_THRESHOLD = 5
 HASH_COUNT_BIN_LABELS = [f"{start}-{start + 9}" for start in range(1, 100, 10)] + ["100+"]
@@ -68,46 +73,6 @@ def parse_summary_metrics(path_summary):
             ):
                 stats["mean_genes_per_cell"] = parse_int(value)
     return stats
-
-
-def resolve_solo_feature_paths(path_star, sample):
-    """
-    Resolve STARSolo summary and count files for one sample with feature fallback.
-    """
-
-    solo_dirs = sorted(pathlib.Path(path_star).glob(f"{sample}_*_Solo.out"))
-    if not solo_dirs:
-        raise FileNotFoundError(
-            f"No STARSolo output directory found for sample '{sample}' in {path_star}"
-        )
-
-    solo_dir = solo_dirs[0]
-    candidate_features = []
-    for feature in ["GeneFull_Ex50pAS", "GeneFull_ExonOverIntron", "GeneFull", "Gene"]:
-        if feature and feature not in candidate_features:
-            candidate_features.append(feature)
-
-    for summary in sorted(solo_dir.glob("*/Summary.csv")):
-        feature = summary.parent.name
-        if feature not in candidate_features:
-            candidate_features.append(feature)
-
-    for feature in candidate_features:
-        feature_dir = solo_dir / feature
-        summary = feature_dir / "Summary.csv"
-        cellreads = feature_dir / "CellReads.stats"
-        filtered_barcodes = feature_dir / "filtered" / "barcodes.tsv"
-        if summary.exists() and cellreads.exists() and filtered_barcodes.exists():
-            return {
-                "feature": feature,
-                "summary": summary,
-                "cellreads": cellreads,
-                "filtered_barcodes": filtered_barcodes,
-            }
-
-    raise FileNotFoundError(
-        f"Could not resolve STARSolo Summary.csv, CellReads.stats and filtered/barcodes.tsv for sample '{sample}' in {solo_dir}"
-    )
 
 
 def _is_missing(value) -> bool:
@@ -472,7 +437,7 @@ def write_cell_hashing_table(qc, out):
     return dict_hashing, hashing_summary, hashing_summary_filt, hashing_summary_bins
 
 
-def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
+def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks, solo_features=None):
     """
     Combine the demuxxing logs with the STAR logs for the sci-dash.
 
@@ -549,9 +514,14 @@ def combine_logs(path_pickle, path_star, path_hashing, path_benchmarks):
     # Per sample, load STARSolo summary and per-cell read stats.
     qc_json["sample_success"] = qc["sample_success"]
     for sample in qc_json["sample_success"]:
-        solo_paths = resolve_solo_feature_paths(path_star, sample)
+        solo_paths = resolve_solo_feature_paths(
+            path_star,
+            sample,
+            preferred_features=solo_features,
+        )
         summary_stats = parse_summary_metrics(solo_paths["summary"])
         qc_json["sample_success"][sample].update(summary_stats)
+        qc_json["sample_success"][sample]["starsolo_feature"] = solo_paths["feature"]
 
         # Load the CellReads.stats file and extract several sample-wise statistics.
         df_cellreads = pd.read_csv(solo_paths["cellreads"], sep="\t", header=0, index_col=0)
@@ -605,6 +575,13 @@ def main(arguments):
     parser.add_argument("--path_out", required=True, type=str, help="(str) Path to store JSON structure.")
     parser.add_argument("--path_hashing", required=True, type=str, help="(str) Path to store hashing metrics (if applicable).")
     parser.add_argument("--path_benchmarks", required=True, type=str, help="(str) Path to workflow benchmarks.")
+    parser.add_argument(
+        "--solo_features",
+        required=False,
+        nargs="+",
+        type=str,
+        help="(str) Preferred STARSolo feature(s) to resolve before applying fallback.",
+    )
 
     parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS, help="Display help and exit.")
 
@@ -617,6 +594,7 @@ def main(arguments):
         args.path_star,
         args.path_hashing,
         args.path_benchmarks,
+        solo_features=args.solo_features,
     )
 
     # Write the JSON structure to file.

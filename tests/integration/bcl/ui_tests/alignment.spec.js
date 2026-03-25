@@ -49,4 +49,12 @@ test.describe("alignment (STARSolo) tab", () => {
       await expect(lastCell).not.toBeEmpty();
     }
   });
+
+  test("preliminary umap controls and cards render", async ({ page }) => {
+    await expect(page.locator("#umap-color-select")).toBeVisible();
+    await expect(page.locator("#sample-umap-grid .card")).not.toHaveCount(0);
+    const plot = page.locator("#sample-umap-grid .sample-umap-plot").first();
+    await expect(plot).toBeVisible();
+    await expect(plot.locator(".svg-container, canvas")).not.toHaveCount(0);
+  });
 });

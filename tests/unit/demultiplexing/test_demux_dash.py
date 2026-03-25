@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 
+from workflow.scripts.demultiplexing.build_umap_data_js import build_umap_payload
 from workflow.scripts.demultiplexing.demux_dash import (
     HASH_COUNT_BIN_LABELS,
     calculate_hashing_bin_summary,
@@ -192,3 +193,85 @@ def test_resolve_solo_feature_paths_falls_back_to_gene(tmp_path):
     assert resolved["summary"] == gene_dir / "Summary.csv"
     assert resolved["cellreads"] == gene_dir / "CellReads.stats"
     assert resolved["filtered_barcodes"] == gene_dir / "filtered" / "barcodes.tsv"
+
+
+def test_resolve_solo_feature_paths_prefers_configured_feature(tmp_path):
+    path_star = tmp_path / "alignment"
+    sample = "sample_a"
+    solo_dir = path_star / f"{sample}_Zebrafish_Solo.out"
+
+    for feature in ("GeneFull_Ex50pAS", "Gene"):
+        feature_dir = solo_dir / feature
+        (feature_dir / "filtered").mkdir(parents=True)
+        (feature_dir / "Summary.csv").write_text("Number of Reads,1\n")
+        (feature_dir / "CellReads.stats").write_text(
+            "CB\tcbMatch\tgenomeU\tgenomeM\texonic\tintronic\texonicAS\tintronicAS\tmito\n"
+            "A\t1\t0\t0\t0\t0\t0\t0\t0\n"
+        )
+        (feature_dir / "filtered" / "barcodes.tsv").write_text("A\n")
+
+    resolved = resolve_solo_feature_paths(path_star, sample, preferred_features=["Gene"])
+
+    assert resolved["feature"] == "Gene"
+    assert resolved["summary"] == solo_dir / "Gene" / "Summary.csv"
+
+
+def test_resolve_solo_feature_paths_requires_filtered_matrix_for_umap(tmp_path):
+    path_star = tmp_path / "alignment"
+    sample = "sample_a"
+    solo_dir = path_star / f"{sample}_Zebrafish_Solo.out"
+
+    gene_dir = solo_dir / "Gene"
+    (gene_dir / "filtered").mkdir(parents=True)
+    (gene_dir / "Summary.csv").write_text("Number of Reads,1\n")
+    (gene_dir / "CellReads.stats").write_text(
+        "CB\tcbMatch\tgenomeU\tgenomeM\texonic\tintronic\texonicAS\tintronicAS\tmito\n"
+        "A\t1\t0\t0\t0\t0\t0\t0\t0\n"
+    )
+    (gene_dir / "filtered" / "barcodes.tsv").write_text("A\n")
+
+    gene_full_dir = solo_dir / "GeneFull_Ex50pAS"
+    (gene_full_dir / "filtered").mkdir(parents=True)
+    (gene_full_dir / "Summary.csv").write_text("Number of Reads,1\n")
+    (gene_full_dir / "CellReads.stats").write_text(
+        "CB\tcbMatch\tgenomeU\tgenomeM\texonic\tintronic\texonicAS\tintronicAS\tmito\n"
+        "A\t1\t0\t0\t0\t0\t0\t0\t0\n"
+    )
+    (gene_full_dir / "filtered" / "barcodes.tsv").write_text("A\n")
+    (gene_full_dir / "filtered" / "features.tsv").write_text("ENSG0001\tGeneA\tGene Expression\n")
+    (gene_full_dir / "filtered" / "matrix.mtx").write_text(
+        "%%MatrixMarket matrix coordinate integer general\n1 1 1\n1 1 1\n"
+    )
+
+    resolved = resolve_solo_feature_paths(
+        path_star,
+        sample,
+        preferred_features=["Gene"],
+        require_filtered_matrix=True,
+    )
+
+    assert resolved["feature"] == "GeneFull_Ex50pAS"
+    assert resolved["filtered_matrix"] == gene_full_dir / "filtered" / "matrix.mtx"
+
+
+def test_build_umap_payload_collects_sample_payloads(tmp_path):
+    sample_a = tmp_path / "sample_a.json"
+    sample_b = tmp_path / "sample_b.json"
+    sample_a.write_text(
+        '{"sample_name":"sample_a","status":"ok","feature":"Gene","n_cells_input":3,"n_cells_plot":3,"x":[0.1],"y":[0.2],"metrics":{"log1p_total_counts":[1.0]}}'
+    )
+    sample_b.write_text(
+        '{"sample_name":"sample_b","status":"unavailable","feature":"Gene","n_cells_input":0,"n_cells_plot":0,"x":[],"y":[],"metrics":{}}'
+    )
+
+    payload = build_umap_payload([str(sample_a), str(sample_b)])
+
+    assert payload["default_color_key"] == "log1p_n_genes_by_counts"
+    assert [option["key"] for option in payload["color_options"]] == [
+        "plain",
+        "log1p_n_genes_by_counts",
+        "log1p_total_counts",
+        "pct_counts_mt",
+    ]
+    assert set(payload["samples"]) == {"sample_a", "sample_b"}
+    assert payload["samples"]["sample_a"]["feature"] == "Gene"

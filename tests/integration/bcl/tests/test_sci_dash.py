@@ -3,10 +3,15 @@ from pathlib import Path
 
 def test_sci_dash_data():
     data_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "sci-dash" / "js" / "qc_data.js"
+    umap_path = Path(__file__).parent.parent / "output" / "bcl_one_run" / "sci-dash" / "js" / "umap_data.js"
     assert data_path.exists()
+    assert umap_path.exists()
     with open(data_path, "r") as f:
         json_data = f.read().split("var data = ")[1]
         data = json.loads(json_data)
+    with open(umap_path, "r") as f:
+        json_umap = f.read().split("var umapData = ")[1]
+        umap_data = json.loads(json_umap)
     assert data["experiment_name"] == "bcl_one_run"
     assert data["n_pairs"] == 100000
     assert data["n_pairs_success"] == 64044
@@ -23,6 +28,7 @@ def test_sci_dash_data():
     assert data["n_hashing"] == 2302
 
     assert "zfish-hash" in data["sample_success"]
+    assert data["sample_success"]["zfish-hash"]["starsolo_feature"] == "GeneFull_Ex50pAS"
 
     assert "zfish-hash" in data["hashing"]
     assert data["hashing"]["zfish-hash"]["10uM_P7_A7"]["n_correct"] == 15
@@ -52,3 +58,25 @@ def test_sci_dash_data():
     assert len(data["hashing_summary_bins"]) == expected_bin_rows
 
     assert data["rt_barcode_counts"]["P01"][0] == {'row': 'B', 'col': '1', 'frequency': 2048}
+
+    assert umap_data["default_color_key"] == "log1p_n_genes_by_counts"
+    assert [option["key"] for option in umap_data["color_options"]] == [
+        "plain",
+        "log1p_n_genes_by_counts",
+        "log1p_total_counts",
+        "pct_counts_mt",
+    ]
+    assert "zfish-hash" in umap_data["samples"]
+    umap_sample = umap_data["samples"]["zfish-hash"]
+    assert umap_sample["status"] == "ok"
+    assert umap_sample["feature"] == "GeneFull_Ex50pAS"
+    assert umap_sample["message"] == ""
+    assert umap_sample["n_cells_plot"] > 0
+    assert len(umap_sample["x"]) == len(umap_sample["y"]) == umap_sample["n_cells_plot"]
+    assert umap_sample["n_cells_input"] >= umap_sample["n_cells_plot"]
+    assert set(umap_sample["metrics"]) == {
+        "log1p_n_genes_by_counts",
+        "log1p_total_counts",
+        "pct_counts_mt",
+    }
+    assert all(len(values) == umap_sample["n_cells_plot"] for values in umap_sample["metrics"].values())

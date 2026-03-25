@@ -230,6 +230,23 @@
                               </div>
                             </div>
                           </div>
+                          <div class="row mt-3">
+                            <div class="card">
+                              <div class="card-body">
+                                <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mb-3">
+                                  <div>
+                                    <div class="subheader">Preliminary UMAP</div>
+                                    <h4 class="mb-0">Filtered cells processed with Scanpy</h4>
+                                  </div>
+                                  <div class="ms-lg-auto">
+                                    <label class="form-label mb-1" for="umap-color-select">Color by</label>
+                                    <select class="form-select" id="umap-color-select"></select>
+                                  </div>
+                                </div>
+                                <div class="row row-cards" id="sample-umap-grid"></div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <!--End Tab: Cells-->
@@ -518,6 +535,7 @@
 
     <!--Import charts and data.-->
     <script defer src="./js/qc_data.js"></script>
+    <script defer src="./js/umap_data.js"></script>
     <script defer src="./js/sci_dash.js"></script>
   </body>
 </html>

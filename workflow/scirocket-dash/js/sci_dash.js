@@ -157,6 +157,15 @@ function generateMatrixChart(data_chart, ctx, rgb_x, rgb_y, rgb_z) {
 
 const sample_names = Object.keys(data.sample_success);
 const roundToOne = num => +(Math.round(num + "e+1") + "e-1");
+const defaultUmapColorOptions = [
+  { key: "plain", label: "Plain" },
+  { key: "log1p_n_genes_by_counts", label: "Genes per cell (log1p)" },
+  { key: "log1p_total_counts", label: "Total counts (log1p)" },
+  { key: "pct_counts_mt", label: "Mitochondrial reads (%)" },
+];
+const umapPayload = typeof umapData === "undefined"
+  ? { default_color_key: "log1p_n_genes_by_counts", color_options: defaultUmapColorOptions, samples: {} }
+  : umapData;
 
 // Count the total number of estimated cells over samples.
 let total_estimated_cells = 0;
@@ -668,6 +677,207 @@ document.addEventListener("DOMContentLoaded", function () {
     sortList: [[0, 0]],
   });
 
+});
+
+//--------------------------------------------
+// Plot - Preliminary UMAPs.
+//--------------------------------------------
+
+function getUmapColorOptions() {
+  if (Array.isArray(umapPayload.color_options) && umapPayload.color_options.length > 0) {
+    return umapPayload.color_options;
+  }
+  return defaultUmapColorOptions;
+}
+
+function getUmapColorLabel(colorKey) {
+  const match = getUmapColorOptions().find((option) => option.key === colorKey);
+  return match ? match.label : colorKey;
+}
+
+function slugifySampleId(sampleName) {
+  return sampleName.replace(/[^A-Za-z0-9_-]+/g, "-");
+}
+
+function browserSupportsWebGL() {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(
+      window.WebGLRenderingContext &&
+      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+function buildUmapTrace(sampleName, sampleData, colorKey) {
+  const trace = {
+    type: browserSupportsWebGL() ? "scattergl" : "scatter",
+    mode: "markers",
+    x: sampleData.x,
+    y: sampleData.y,
+    hoverinfo: "skip",
+    marker: {
+      size: 4,
+      opacity: 0.85,
+      line: {
+        width: 0,
+      },
+    },
+  };
+
+  if (colorKey === "plain" || !sampleData.metrics || !sampleData.metrics[colorKey]) {
+    trace.marker.color = "#206bc4";
+    return trace;
+  }
+
+  trace.customdata = sampleData.metrics[colorKey];
+  trace.marker.color = sampleData.metrics[colorKey];
+  trace.marker.colorscale = "Viridis";
+  trace.marker.showscale = true;
+  trace.marker.colorbar = {
+    title: {
+      text: getUmapColorLabel(colorKey),
+    },
+    thickness: 10,
+    len: 0.8,
+  };
+  return trace;
+}
+
+function renderUmapPlot(container, sampleName, sampleData, colorKey) {
+  if (typeof Plotly === "undefined") {
+    container.innerHTML = "<div style='text-align:center'><b>Plotly is not available</b></div>";
+    return;
+  }
+
+  const trace = buildUmapTrace(sampleName, sampleData, colorKey);
+  const layout = {
+    autosize: true,
+    dragmode: "pan",
+    hovermode: false,
+    margin: { l: 45, r: 20, t: 10, b: 45 },
+    xaxis: {
+      title: { text: "UMAP 1" },
+      zeroline: false,
+    },
+    yaxis: {
+      title: { text: "UMAP 2" },
+      zeroline: false,
+    },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+  };
+  const config = {
+    responsive: true,
+    displayModeBar: false,
+    scrollZoom: false,
+    displaylogo: false,
+  };
+
+  Plotly.react(container, [trace], layout, config);
+}
+
+function renderSampleUmaps(colorKey) {
+  const grid = document.getElementById("sample-umap-grid");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+  const samples = Object.entries(umapPayload.samples || {});
+  if (samples.length === 0) {
+    grid.innerHTML = "<div class='col-12'><div style='text-align:center'><b>No preliminary UMAP data available</b></div></div>";
+    return;
+  }
+
+  for (const [sampleName, sampleData] of samples) {
+    const col = document.createElement("div");
+    col.className = "col-md-6 col-xl-6";
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const cardBody = document.createElement("div");
+    cardBody.className = "card-body";
+
+    const title = createElement("div", "subheader", `Sample: ${sampleName}`);
+    cardBody.appendChild(title);
+
+    const metaText = [];
+    if (sampleData.feature) {
+      metaText.push(`Feature: ${sampleData.feature}`);
+    }
+    if (sampleData.n_cells_plot != null) {
+      metaText.push(`Cells plotted: ${Intl.NumberFormat("en-US").format(sampleData.n_cells_plot)}`);
+    }
+    if (sampleData.status !== "ok" && sampleData.n_cells_input != null) {
+      metaText.push(`Input cells: ${Intl.NumberFormat("en-US").format(sampleData.n_cells_input)}`);
+    }
+    if (metaText.length > 0) {
+      cardBody.appendChild(createElement("div", "text-secondary mb-3", metaText.join(" | ")));
+    }
+
+    if (sampleData.status !== "ok" || !Array.isArray(sampleData.x) || sampleData.x.length === 0) {
+      const message = sampleData.message || "Preliminary UMAP is unavailable for this sample.";
+      cardBody.appendChild(createElement("div", "", `<div style='text-align:center'><b>${message}</b></div>`));
+      card.appendChild(cardBody);
+      col.appendChild(card);
+      grid.appendChild(col);
+      continue;
+    }
+
+    const metricSummary = createElement(
+      "div",
+      "text-secondary mb-2",
+      `${getUmapColorLabel(colorKey)}${colorKey === "plain" ? "" : `; range shown in colorbar`}`
+    );
+    cardBody.appendChild(metricSummary);
+
+    const plotContainer = document.createElement("div");
+    plotContainer.id = `sample-umap-${slugifySampleId(sampleName)}`;
+    plotContainer.className = "sample-umap-plot";
+    plotContainer.style.height = "320px";
+    cardBody.appendChild(plotContainer);
+
+    card.appendChild(cardBody);
+    col.appendChild(card);
+    grid.appendChild(col);
+
+    renderUmapPlot(plotContainer, sampleName, sampleData, colorKey);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const colorSelect = document.getElementById("umap-color-select");
+  if (!colorSelect) return;
+
+  colorSelect.innerHTML = "";
+  const colorOptions = getUmapColorOptions();
+  for (const option of colorOptions) {
+    const element = document.createElement("option");
+    element.value = option.key;
+    element.textContent = option.label;
+    colorSelect.appendChild(element);
+  }
+
+  const defaultColorKey = umapPayload.default_color_key || "log1p_n_genes_by_counts";
+  colorSelect.value = colorOptions.some((option) => option.key === defaultColorKey)
+    ? defaultColorKey
+    : colorOptions[0].key;
+
+  renderSampleUmaps(colorSelect.value);
+  colorSelect.addEventListener("change", function () {
+    renderSampleUmaps(colorSelect.value);
+  });
+
+  const alignmentTabToggle = document.querySelector('a[href="#tabs-starsolo"]');
+  if (alignmentTabToggle && typeof Plotly !== "undefined") {
+    alignmentTabToggle.addEventListener("shown.bs.tab", function () {
+      document.querySelectorAll(".sample-umap-plot").forEach((plot) => {
+        Plotly.Plots.resize(plot);
+      });
+    });
+  }
 });
 
 //--------------------------------------------

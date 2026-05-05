@@ -20,10 +20,20 @@ def get_fastq_split_scatteritems():
     return [f"{i:0{width}d}" for i in range(1, n_parts + 1)]
 
 
+def get_sequencing_runs(experiment_name):
+    """Return a list of sequencing runs for an experiment."""
+    return samples_unique.query("experiment_name == @experiment_name").sequencing_name.unique().tolist()
+
+
 # ---- Split R1 and R2 files into smaller files which will be handled in parallel. ----
 rule split_reads:
     input:
-        out("{experiment_name}/raw_reads/Undetermined_S0_{read}_001.fastq.gz"),
+        fastqs=lambda w: expand(
+            out("{experiment_name}/raw_reads/{sequencing_name}/Undetermined_S0_{read}_001.fastq.gz"),
+            experiment_name=w.experiment_name,
+            sequencing_name=get_sequencing_runs(w.experiment_name),
+            read=w.read,
+        ),
     output:
         temp(
             expand(
@@ -44,18 +54,30 @@ rule split_reads:
         n_parts=get_fastq_split_parts(),
         out_dir=out("{experiment_name}/raw_reads_split"),
     conda:
-        "../envs/sci-rocket.yaml",        
+        "../envs/sci-rocket.yaml",
     shell:
         r"""
         exec > "{log}" 2>&1
         set -euo pipefail
+
+        # Stream per-run gzipped fastqs into seqkit split2 via a named fifo.
+        # cat-ing gzip files yields a valid multi-member gzip stream, and the
+        # .fastq.gz suffix on the fifo path makes seqkit emit gzipped chunks.
+        fifo="$(mktemp -u --suffix=.fastq.gz)"
+        mkfifo "$fifo"
+        trap 'rm -f "$fifo"' EXIT
+
+        cat {input.fastqs:q} > "$fifo" &
+        cat_pid=$!
 
         seqkit split2 \
           -p {params.n_parts} \
           -j {threads} \
           -O {params.out_dir:q} \
           --by-part-prefix "{wildcards.read}_" \
-          {input:q}
+          "$fifo"
+
+        wait "$cat_pid"
         """
 
 # ---- Helper for explicit per-sample scatter outputs in demultiplex_fastq_split. ----

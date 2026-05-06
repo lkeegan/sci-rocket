@@ -1,6 +1,10 @@
 # Set min. snakemake version for compatability.
 snakemake.utils.min_version("7.32.4")
 
+# If the user doesn't pass --configfile or --config, look for config.yaml in the current working directory
+if not config:
+    configfile: "config.yaml"
+
 include: "rules/common.smk"
 
 
